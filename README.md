@@ -1,157 +1,114 @@
-<p align="center">
-  <img src="assets/logo-readme.png" alt="HiveBear" width="120" />
-</p>
+![TermuxHiveBear Banner](termux_hivebear_banner.jpg)
 
-<h1 align="center">HiveBear</h1>
+# 🐻 TermuxHiveBear
 
-<p align="center">
-  <strong>The world's largest peer-to-peer AI network.</strong><br>
-  Every device is a node. Every node makes the network smarter.
-</p>
+> **Decentralized P2P Local AI Inference on Termux Android**  
+> *Inferencia de IA Local y Descentralizada P2P en Termux Android*
 
-<p align="center">
-  <a href="https://github.com/BeckhamLabsLLC/HiveBear/actions"><img src="https://github.com/BeckhamLabsLLC/HiveBear/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/BeckhamLabsLLC/HiveBear/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
-  <a href="https://github.com/BeckhamLabsLLC/HiveBear/releases/latest"><img src="https://img.shields.io/github/v/release/BeckhamLabsLLC/HiveBear?label=release" alt="Latest Release" /></a>
-</p>
+[![GitHub fork](https://img.shields.io/badge/Forked%20From-BeckhamLabsLLC%2FHiveBear-blue?style=for-the-badge&logo=github)](https://github.com/BeckhamLabsLLC/HiveBear)
+[![Termux Compatible](https://img.shields.io/badge/Termux-Supported-brightgreen?style=for-the-badge&logo=android)](https://termux.dev)
+[![Architecture](https://img.shields.io/badge/Architecture-ARM64%20%2F%20aarch64-orange?style=for-the-badge)](https://github.com/kuromi04/TermuxHiveBear)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 ---
 
-## Why HiveBear Exists
+## 🌐 Languages / Idiomas
 
-There are billions of devices sitting idle right now — laptops, desktops, gaming PCs, workstations, even Raspberry Pis — with CPUs and GPUs doing nothing. Meanwhile, running AI costs a fortune in cloud compute, and access is controlled by a handful of companies.
+- [English Documentation](#-english-documentation)
+- [Documentación en Español](#-documentación-en-español)
 
-HiveBear connects these idle devices into a single distributed AI network. When you join the mesh, your hardware contributes to a collective compute pool. When you need to run a model that's too large for your machine, the mesh splits it across multiple devices automatically. No central server. No cloud bill. No data leaving the network.
+---
 
-The goal is simple: **build a global P2P mesh where anyone can run any AI model, regardless of what hardware they own, by pooling compute with everyone else.**
+## 🇬🇧 English Documentation
 
-## How It Works
+### 📌 About The Project
+**TermuxHiveBear** is a specialized port and deployment guide for running [HiveBear](https://github.com/BeckhamLabsLLC/HiveBear) (by Beckham Labs LLC) natively inside **Termux** on Android devices. HiveBear enables decentralized peer-to-peer (P2P) mesh local LLM inference across devices, running fast GGUF models on ARM64 architectures using `llama.cpp` and Rust.
 
-```
-   You (8GB laptop)          Friend (16GB desktop)        Mesh peer (GPU workstation)
-        |                           |                              |
-        +------------- QUIC/TLS encrypted mesh ---------------+
-                                    |
-                          HiveBear Mesh Network
-                                    |
-                     Distributed inference: 70B model
-                     split across all three devices
-```
+### ✨ Features
+* 🚀 **100% Offline & Private:** Run LLMs locally on Android without sending data to external cloud servers.
+* ⚡ **Optimized for Mobile Hardware:** Light RAM footprint (~400MB - 1GB) with high performance (20-40+ tokens/sec).
+* 🔒 **QUIC + TLS 1.3 Encryption:** Secure P2P networking and mesh node inter-communication.
+* 🌐 **OpenAI / Ollama Compatible API:** Built-in API server (`hivebear serve`) to integrate with local apps.
 
-1. **Install HiveBear** on any device
-2. **Join the mesh** — your device auto-profiles its hardware and advertises its capabilities
-3. **Run any model** — if it fits locally, it runs locally. If it doesn't, HiveBear distributes the model layers across mesh peers automatically
-4. **Contribute idle compute** — when you're not using your device, it helps others run their models
+### 🛠️ Quick Installation Guide
 
+#### 1. Prerequisites
+Ensure you have Termux installed (preferably from F-Droid) with `git` and `curl`:
 ```bash
-# Join the global mesh
-hivebear mesh start
-
-# Run a 70B model you couldn't run alone
-hivebear mesh run llama-3.1-70b --prompt "Explain quantum computing"
-
-# See who's connected
-hivebear mesh status
+pkg update && pkg install git curl -y
 ```
 
-The mesh uses QUIC transport with TLS encryption. Inference is distributed using pipeline parallelism — each device holds a subset of model layers and forwards activations to the next peer. No raw model weights or user prompts are exposed to other nodes.
-
-## It Also Works Standalone
-
-Even without the mesh, HiveBear is a complete local AI runtime. It profiles your hardware, picks the best model and quantization automatically, and runs it:
-
+#### 2. Download Model (Qwen 2.5 0.5B GGUF)
+Due to HuggingFace API constraints on mobile shells, manual model downloading is recommended:
 ```bash
-# One command: profile hardware, pick best model, download, chat
-hivebear quickstart
-
-# Or use it as an Ollama-compatible API server
-hivebear serve
+mkdir -p ~/.cache/hivebear/models
+curl -L -o ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
+  https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf
 ```
 
-The `serve` command is a drop-in replacement for `ollama serve` — same port (11434), same API. Your existing tools, IDE extensions (Continue, Cody), and scripts work without changes. When a model is too large for your hardware, it automatically overflows to the mesh.
-
-## Install
-
+#### 3. Run Inference
 ```bash
-# One-line install (Linux/macOS)
-curl -fsSL https://raw.githubusercontent.com/BeckhamLabsLLC/HiveBear/main/install.sh | bash
-
-# Homebrew
-brew install BeckhamLabsLLC/hivebear/hivebear
-
-# Scoop (Windows)
-scoop bucket add hivebear https://github.com/BeckhamLabsLLC/scoop-hivebear
-scoop install hivebear
-
-# Docker
-docker run -it --rm -p 11434:11434 ghcr.io/beckhamlabsllc/hivebear quickstart
-
-# Docker with NVIDIA GPU
-docker run -it --rm --gpus all -p 11434:11434 ghcr.io/beckhamlabsllc/hivebear:latest-cuda quickstart
-
-# Build from source
-cargo install --git https://github.com/BeckhamLabsLLC/HiveBear hivebear-cli
+hivebear run ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf
 ```
 
-## What Your Hardware Can Run
+### 🛰️ Available Commands
 
-HiveBear auto-detects and adapts to whatever you have:
+| Command | Description |
+|---|---|
+| `hivebear run <model_path>` | Run interactive chat with a local `.gguf` model |
+| `hivebear serve` | Start an OpenAI & Ollama compatible local API server |
+| `hivebear recommend` | Show hardware profile and recommended models |
+| `hivebear share` | Share local model via public/local web link |
+| `hivebear mesh` | Manage P2P distributed inference mesh |
 
-| Device | RAM | Solo | With Mesh |
-|--------|-----|------|-----------|
-| Raspberry Pi 5 | 8 GB | TinyLlama 1.1B, Phi-2 2.7B | Contribute layers to larger models |
-| Old laptop | 8 GB | Llama 3.1 8B (Q4), Mistral 7B | Help run 13B-30B models |
-| Gaming PC | 16 GB | Llama 3.1 8B (Q8), CodeLlama 13B | Help run 70B+ models |
-| Workstation | 32+ GB | Llama 3.1 70B (Q4), Mixtral 8x7B | Run anything |
+---
 
-GPU acceleration is automatic (CUDA, Metal, Vulkan, WebGPU).
+## 🇪🇸 Documentación en Español
 
-## Architecture
+### 📌 Acerca del Proyecto
+**TermuxHiveBear** es una adaptación y guía de despliegue especializada para ejecutar [HiveBear](https://github.com/BeckhamLabsLLC/HiveBear) (de Beckham Labs LLC) de manera nativa dentro de **Termux** en dispositivos Android. HiveBear permite la inferencia descentralizada P2P de modelos de lenguaje (LLM) entre dispositivos, ejecutando modelos GGUF ultrarrápidos en arquitecturas ARM64 con `llama.cpp` y Rust.
 
-Rust workspace, 8 crates:
+### ✨ Características Principales
+* 🚀 **100% Privado y Offline:** Ejecuta modelos de inteligencia artificial en tu teléfono sin enviar datos a servidores externos.
+* ⚡ **Optimizado para Móviles:** Bajo consumo de RAM (~400MB - 1GB) con alta velocidad de respuesta (20-40+ tokens/seg).
+* 🔒 **Cifrado QUIC + TLS 1.3:** Protocolos de red seguros para la malla P2P entre nodos.
+* 🌐 **API Compatible con OpenAI / Ollama:** Servidor de API integrado (`hivebear serve`) para conectar con otras apps.
 
-```
-hivebear-core          Hardware profiling, model recommendations
-hivebear-inference     Multi-engine inference (llama.cpp, Candle)
-hivebear-mesh          P2P distributed inference over QUIC/TLS
-hivebear-registry      Model search, download, conversion (HuggingFace)
-hivebear-persistence   Conversation history (SQLite)
-hivebear-cli           CLI + API server (Ollama + OpenAI compatible)
-hivebear-web           WASM bridge for browser inference
-apps/desktop           Tauri desktop app (Rust + React)
-```
+### 🛠️ Guía Rápida de Instalación
 
-## CLI Reference
-
-```
-hivebear quickstart                    Profile -> recommend -> install -> chat
-hivebear serve                         Start Ollama + OpenAI compatible API server
-hivebear profile                       Show hardware capabilities
-hivebear recommend                     Get model recommendations for your hardware
-
-hivebear mesh start [--port 7878]      Join the P2P mesh network
-hivebear mesh status                   Show connected peers and network capacity
-hivebear mesh run <model>              Distributed inference across the mesh
-hivebear mesh stop                     Leave the mesh
-
-hivebear search <query>                Search models on HuggingFace
-hivebear install <model>               Download a model
-hivebear run <model>                   Local inference (chat, --api, or --prompt)
-hivebear list / remove / storage       Manage installed models
+#### 1. Requisitos Previos
+Asegúrate de tener Termux actualizado con `git` y `curl`:
+```bash
+pkg update && pkg install git curl -y
 ```
 
-## Platforms
+#### 2. Descarga del Modelo (Qwen 2.5 0.5B GGUF)
+Para garantizar la compatibilidad en Termux, se recomienda descargar el modelo manualmente:
+```bash
+mkdir -p ~/.cache/hivebear/models
+curl -L -o ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
+  https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf
+```
 
-- **CLI**: Linux, macOS, Windows, ARM (Raspberry Pi, Apple Silicon)
-- **Desktop app**: Linux (.deb, .AppImage), macOS (.dmg), Windows (.msi, .exe)
-- **Mobile**: Android (.apk)
-- **Browser**: WASM + WebGPU
-- **Docker**: CPU and CUDA images
+#### 3. Ejecución de la Inferencia
+```bash
+hivebear run ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+```
 
-## Contributing
+### 🛰️ Comandos Principales
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). The most impactful contributions right now are around the mesh networking layer and hardware profiling coverage.
+| Comando | Descripción |
+|---|---|
+| `hivebear run <ruta_modelo>` | Inicia el chat interactivo con el modelo `.gguf` |
+| `hivebear serve` | Inicia el servidor de API compatible con OpenAI / Ollama |
+| `hivebear recommend` | Muestra el perfil de hardware y modelos recomendados |
+| `hivebear share` | Comparte el modelo a través de un enlace web local/público |
+| `hivebear mesh` | Administra la red P2P distribuida |
 
-## License
+---
 
-MIT. See [LICENSE](LICENSE).
+## 🤝 Acknowledgments & Credits / Agradecimientos
+
+- Original project by **[Beckham Labs LLC - HiveBear](https://github.com/BeckhamLabsLLC/HiveBear)**.
+- Android & Termux optimization guide maintained by **[kuromi04](https://github.com/kuromi04/TermuxHiveBear)**.
+- Powered by `llama.cpp` and `Rust`.
