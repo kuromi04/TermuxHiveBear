@@ -12,6 +12,17 @@
 
 ---
 
+## ⚡ 1-Line Automatic Installer / Instalador Automático en 1 Línea
+
+Run this single command in Termux to clone the repo, set up dependencies, download the GGUF model, and start chatting:  
+*Ejecuta este único comando en Termux para clonar el repo, configurar dependencias, descargar el modelo GGUF y comenzar:*
+
+```bash
+git clone https://github.com/kuromi04/TermuxHiveBear.git && cd TermuxHiveBear && bash install.sh
+```
+
+---
+
 ## 🌐 Languages / Idiomas
 
 - [English Documentation](#-english-documentation)
