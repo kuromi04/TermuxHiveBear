@@ -22,8 +22,8 @@ else
     echo "✅ El modelo Qwen 2.5 0.5B ya está descargado en tu dispositivo."
 fi
 
-# 4. Crear alias/comando global 'termuxhivebear'
-echo "🔗 Configurando alias global 'termuxhivebear'..."
+# 4. Crear alias/comandos globales con variaciones de mayúsculas/minúsculas
+echo "🔗 Configurando ejecutables globales (termuxhivebear / termuxhiveBear / TermuxHiveBear)..."
 BIN_DIR="$HOME/.local/bin"
 mkdir -p "$BIN_DIR"
 
@@ -41,17 +41,23 @@ EOF
 
 chmod +x "$BIN_DIR/termuxhivebear"
 
-# Asegurar también copia en $PREFIX/bin si es posible
+# Crear variaciones
+ln -sf "$BIN_DIR/termuxhivebear" "$BIN_DIR/termuxhiveBear" 2>/dev/null || cp "$BIN_DIR/termuxhivebear" "$BIN_DIR/termuxhiveBear"
+ln -sf "$BIN_DIR/termuxhivebear" "$BIN_DIR/TermuxHiveBear" 2>/dev/null || cp "$BIN_DIR/termuxhivebear" "$BIN_DIR/TermuxHiveBear"
+
+# Copiar a $PREFIX/bin para disponibilidad global inmediata
 if [ -d "$PREFIX/bin" ]; then
     cp "$BIN_DIR/termuxhivebear" "$PREFIX/bin/termuxhivebear" 2>/dev/null || true
-    chmod +x "$PREFIX/bin/termuxhivebear" 2>/dev/null || true
+    cp "$BIN_DIR/termuxhivebear" "$PREFIX/bin/termuxhiveBear" 2>/dev/null || true
+    cp "$BIN_DIR/termuxhivebear" "$PREFIX/bin/TermuxHiveBear" 2>/dev/null || true
+    chmod +x "$PREFIX/bin/termuxhivebear" "$PREFIX/bin/termuxhiveBear" "$PREFIX/bin/TermuxHiveBear" 2>/dev/null || true
 fi
 
 echo ""
 echo "🎉 ¡Instalación y alias completados con éxito!"
 echo "--------------------------------------------------------"
-echo "¡Ahora puedes abrir el menú en cualquier momento escribiendo simplemente:"
-echo ""
-echo "    termuxhivebear"
-echo ""
+echo "¡Puedes abrir el menú escribiendo cualquiera de estos comandos:"
+echo "  - termuxhivebear"
+echo "  - termuxhiveBear"
+echo "  - TermuxHiveBear"
 echo "--------------------------------------------------------"
