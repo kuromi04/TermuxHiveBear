@@ -14,11 +14,19 @@
 
 ## ⚡ 1-Line Automatic Installer / Instalador Automático en 1 Línea
 
-Run this single command in Termux to clone the repo, set up dependencies, download the GGUF model, and start chatting:  
-*Ejecuta este único comando en Termux para clonar el repo, configurar dependencias, descargar el modelo GGUF y comenzar:*
+Run this single command in Termux to install everything automatically:  
+*Ejecuta este único comando en Termux para instalar todo automáticamente:*
 
 ```bash
 git clone https://github.com/kuromi04/TermuxHiveBear.git && cd TermuxHiveBear && bash install.sh
+```
+
+### 🚀 Usage after installation / Uso tras la instalación
+Once installed, simply type **`termuxhivebear`** anytime from any directory to open the interactive CLI menu:  
+*Una vez instalado, simplemente escribe **`termuxhivebear`** desde cualquier carpeta para abrir el menú interactivo:*
+
+```bash
+termuxhivebear
 ```
 
 ---
@@ -76,6 +84,7 @@ hivebear serve
 
 | Command | Description |
 |---|---|
+| `termuxhivebear` | Open interactive CLI menu |
 | `hivebear run <model_path>` | Run interactive chat with a local `.gguf` model |
 | `hivebear serve` | Start an OpenAI & Ollama compatible local API server |
 | `hivebear recommend` | Show hardware profile and recommended models |
@@ -130,6 +139,7 @@ hivebear serve
 
 | Comando | Descripción |
 |---|---|
+| `termuxhivebear` | Abre el menú interactivo por CLI |
 | `hivebear run <ruta_modelo>` | Inicia el chat interactivo con el modelo `.gguf` |
 | `hivebear serve` | Inicia el servidor de API compatible con OpenAI / Ollama |
 | `hivebear recommend` | Muestra el perfil de hardware y modelos recomendados |
