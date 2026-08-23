@@ -5,6 +5,11 @@ All notable changes to HiveBear are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased Termux Patch] - 2026-08-23
+### Fixed
+- Fixed Option 6 (Storage) in `menu.sh` to correctly read models from `~/.cache/hivebear/models` instead of the native Rust `LocalIndex`, solving the "0 B" storage bug.
+- Fixed Option 1 (Contribute Mesh) in `menu.sh` to auto-inject the local `.gguf` model with `--model`, preventing crashes related to HuggingFace API JSON decoding errors on Android.
+
 ## [0.1.5] - 2026-03-30
 
 ### Added

@@ -14,30 +14,36 @@ show_banner() {
     clear
     local c_termux='\033[1;36m'  # Cyan para Termux
     local c_hive='\033[1;33m'    # Amarillo/Miel para HiveBear
-    local c_line='\033[1;30m'    # Gris oscuro/Negro brillante para separadores
+    local c_line='\033[1;34m'    # Azul para separadores
     local c_text='\033[1;37m'    # Blanco brillante para el texto
     local c_reset='\033[0m'
     
-    local banner=(
-        "${c_termux}  _____                              ${c_reset}"
-        "${c_termux} |_   _|___ _ _ _ __ _  ___ __       ${c_reset}"
-        "${c_termux}   | |/ -_) '_| '  \\ || \\ \\ /        ${c_reset}"
-        "${c_termux}   |_|\\___|_| |_|_|_\\_,_/_\\_\\        ${c_reset}"
-        "${c_hive}      _  _ _         ___             ${c_reset}"
-        "${c_hive}     | || (_)_ _____| _ ) ___ __ _ _ ${c_reset}"
-        "${c_hive}     | __ | \\ V / -_) _ \\/ -_) _\` | '_|${c_reset}"
-        "${c_hive}     |_||_|_|\\_/\\___|___/\\___\\__,_|_|  ${c_reset}"
-        "${c_line}=======================================${c_reset}"
-        "${c_text}    🐻 Interactive Menu by kuromi04 🐻 ${c_reset}"
-        "${c_line}=======================================${c_reset}"
-    )
+    local line="${c_line}==========================================================${c_reset}"
+    
+    echo -e "$line"
+    echo -en "${c_termux} 🐻 Termux"
+    sleep 0.2
+    echo -en "${c_hive}HiveBear "
+    sleep 0.2
+    echo -en "${c_text}- "
+    
+    local text
     if [ "$LANG_MODE" = "ES" ]; then
-        banner[9]="${c_text}    🐻 Menú Interactivo by kuromi04 🐻 ${c_reset}"
+        text="Menú Interactivo by kuromi04 🐻 "
+    else
+        text="Interactive Menu by kuromi04 🐻 "
     fi
-    for i in "${!banner[@]}"; do
-        echo -e "${banner[$i]}"
+    
+    # Animación letra por letra
+    for (( i=0; i<${#text}; i++ )); do
+        echo -en "${text:$i:1}"
         sleep 0.02
     done
+    
+    echo -e "${c_reset}"
+    echo -e "$line"
+    
+
     
     echo ""
     local tips_es=(
@@ -142,7 +148,7 @@ show_menu() {
                     return
                 elif [[ "$RUN_INDEX" =~ ^[0-9]+$ ]] && [ "$RUN_INDEX" -ge 1 ] && [ "$RUN_INDEX" -le "${#LOCAL_MODELS[@]}" ]; then
                     SELECTED_MODEL="${LOCAL_MODELS[$((RUN_INDEX-1))]}"
-                    hivebear run "$HOME/.cache/hivebear/models/$SELECTED_MODEL"
+                    RUST_LOG=error hivebear run "$HOME/.cache/hivebear/models/$SELECTED_MODEL"
                 else
                     if [ "$LANG_MODE" = "ES" ]; then
                         echo "❌ Selección inválida."
@@ -158,7 +164,7 @@ show_menu() {
             else
                 echo "🌐 Starting API Server on http://localhost:11434..."
             fi
-            hivebear serve
+            RUST_LOG=error hivebear serve
             ;;
         3)
             if [ "$LANG_MODE" = "ES" ]; then
@@ -275,7 +281,17 @@ show_menu() {
             show_menu
             ;;
         6)
-            hivebear storage
+            echo "=========================================================="
+            echo -e "  \e[1;36mHiveBear Storage (Termux Cache)\e[0m"
+            echo "=========================================================="
+            if [ -d "$HOME/.cache/hivebear/models" ]; then
+                echo "Total model storage: $(du -sh $HOME/.cache/hivebear/models | cut -f1)"
+                echo ""
+                ls -lh $HOME/.cache/hivebear/models | awk '{print $9, $5}' | grep gguf
+            else
+                echo "Total model storage: 0 B"
+            fi
+            echo "=========================================================="
             read -p "Presiona Enter para continuar / Press Enter to continue..."
             show_menu
             ;;
@@ -458,7 +474,14 @@ show_menu() {
                 read -p " Elige una opción: " sub_choice
                 case $sub_choice in
                     0) show_menu; return ;;
-                    1) hivebear contribute ;;
+                    1)
+                        FIRST_MOD=$(ls -1 $HOME/.cache/hivebear/models/ 2>/dev/null | grep gguf | head -n1)
+                        if [ -n "$FIRST_MOD" ]; then
+                            hivebear contribute --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
+                        else
+                            hivebear contribute
+                        fi
+                        ;;
                     2) hivebear mesh status; read -p "Presiona Enter..." ;;
                     3) 
                         mapfile -t LOCAL_MODELS < <(ls -1 "$HOME/.cache/hivebear/models/" 2>/dev/null || true)
@@ -478,7 +501,7 @@ show_menu() {
                                 mpath="$MODEL_PATH"
                             fi
                         fi
-                        hivebear mesh run "$mpath"
+                        RUST_LOG=error hivebear mesh run "$mpath"
                        ;;
                     4) hivebear share ;;
                     *) echo "Opción inválida" ;;
@@ -493,7 +516,14 @@ show_menu() {
                 read -p " Choose an option: " sub_choice
                 case $sub_choice in
                     0) show_menu; return ;;
-                    1) hivebear contribute ;;
+                    1)
+                        FIRST_MOD=$(ls -1 $HOME/.cache/hivebear/models/ 2>/dev/null | grep gguf | head -n1)
+                        if [ -n "$FIRST_MOD" ]; then
+                            hivebear contribute --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
+                        else
+                            hivebear contribute
+                        fi
+                        ;;
                     2) hivebear mesh status; read -p "Press Enter..." ;;
                     3) 
                         mapfile -t LOCAL_MODELS < <(ls -1 "$HOME/.cache/hivebear/models/" 2>/dev/null || true)
@@ -513,7 +543,7 @@ show_menu() {
                                 mpath="$MODEL_PATH"
                             fi
                         fi
-                        hivebear mesh run "$mpath"
+                        RUST_LOG=error hivebear mesh run "$mpath"
                        ;;
                     4) hivebear share ;;
                     *) echo "Invalid option" ;;
