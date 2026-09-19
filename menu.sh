@@ -458,7 +458,7 @@ show_menu() {
             else
                 echo "🔄 Checking for TermuxHiveBear updates..."
             fi
-            cd ~/TermuxHiveBear && git pull && bash install.sh
+            cd "$(dirname "$(realpath "$0")")" && git pull && bash install.sh
             echo ""
             read -p " Pulsa ENTER para continuar / Press ENTER to continue..."
             show_menu
