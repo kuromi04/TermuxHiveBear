@@ -22,18 +22,31 @@ else
     echo "✅ El modelo Qwen 2.5 0.5B ya está descargado en tu dispositivo."
 fi
 
+# 3.5 Instalar el binario de hivebear
+echo "⚙️  Instalando binario de hivebear..."
+if command -v cargo &> /dev/null; then
+    echo "🔨 Compilando hivebear desde el código fuente..."
+    cargo build --release
+    cp target/release/hivebear $PREFIX/bin/hivebear
+    chmod +x $PREFIX/bin/hivebear
+else
+    echo "📥 Descargando binario precompilado de hivebear (ARM64)..."
+    # Reemplaza la URL con la ubicación real de tu release en GitHub
+    curl -L -o $PREFIX/bin/hivebear https://github.com/tu-usuario/TermuxHiveBear/releases/latest/download/hivebear-aarch64
+    chmod +x $PREFIX/bin/hivebear
+fi
+
 # 4. Crear alias/comandos globales con variaciones de mayúsculas/minúsculas
 echo "🔗 Configurando ejecutables globales (termuxhivebear / termuxhiveBear / TermuxHiveBear)..."
 BIN_DIR="$HOME/.local/bin"
 mkdir -p "$BIN_DIR"
+REPO_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-cat << 'EOF' > "$BIN_DIR/termuxhivebear"
+cat << EOF > "$BIN_DIR/termuxhivebear"
 #!/usr/bin/env bash
-SCRIPT_DIR="$HOME/TermuxHiveBear"
-if [ -f "$SCRIPT_DIR/menu.sh" ]; then
-    bash "$SCRIPT_DIR/menu.sh"
-elif [ -f "/data/data/com.termux/files/home/.gemini/antigravity-cli/brain/278a35cb-5d04-4d3d-9358-ea2e4e459dc1/menu.sh" ]; then
-    bash "/data/data/com.termux/files/home/.gemini/antigravity-cli/brain/278a35cb-5d04-4d3d-9358-ea2e4e459dc1/menu.sh"
+SCRIPT_DIR="$REPO_DIR"
+if [ -f "\$SCRIPT_DIR/menu.sh" ]; then
+    bash "\$SCRIPT_DIR/menu.sh"
 else
     hivebear --help
 fi

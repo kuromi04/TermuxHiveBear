@@ -477,9 +477,9 @@ show_menu() {
                     1)
                         FIRST_MOD=$(ls -1 $HOME/.cache/hivebear/models/ 2>/dev/null | grep gguf | head -n1)
                         if [ -n "$FIRST_MOD" ]; then
-                            hivebear contribute --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
+                            hivebear contribute --coordinator http://34.66.188.245 --port 7882 --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
                         else
-                            hivebear contribute
+                            hivebear contribute --coordinator http://34.66.188.245 --port 7882
                         fi
                         ;;
                     2) hivebear mesh status; read -p "Presiona Enter..." ;;
@@ -519,9 +519,9 @@ show_menu() {
                     1)
                         FIRST_MOD=$(ls -1 $HOME/.cache/hivebear/models/ 2>/dev/null | grep gguf | head -n1)
                         if [ -n "$FIRST_MOD" ]; then
-                            hivebear contribute --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
+                            hivebear contribute --coordinator http://34.66.188.245 --port 7882 --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
                         else
-                            hivebear contribute
+                            hivebear contribute --coordinator http://34.66.188.245 --port 7882
                         fi
                         ;;
                     2) hivebear mesh status; read -p "Press Enter..." ;;
