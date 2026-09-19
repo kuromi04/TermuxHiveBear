@@ -29,6 +29,11 @@ jobs:
             binary: hivebear
             use_cross: true
             features: ""
+          - os: ubuntu-latest
+            target: aarch64-linux-android
+            binary: hivebear
+            use_cross: true
+            features: ""
           - os: macos-latest
             target: x86_64-apple-darwin
             binary: hivebear
@@ -399,7 +404,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Try signed Windows artifacts first, fall back to unsigned
       - name: Download signed Windows MSI
         id: signed-msi
         continue-on-error: true
@@ -445,10 +449,8 @@ jobs:
       - name: Collect and rename desktop assets
         run: |
           mkdir -p release
-          # Collect all desktop artifacts (installers + updater bundles + signatures)
           find artifacts/desktop-* -type f \( -name "*.deb" -o -name "*.AppImage" -o -name "*.dmg" -o -name "*.msi" -o -name "*.exe" -o -name "*.tar.gz" -o -name "*.nsis.zip" -o -name "*.sig" \) -exec cp {} release/ \;
 
-          # Create stable-named copies for website download buttons
           cd release
           for f in *.dmg; do [ -f "$f" ] && cp "$f" HiveBear.dmg; done
           for f in *_x64_en-US.msi; do [ -f "$f" ] && cp "$f" HiveBear-x64.msi; done
@@ -456,7 +458,6 @@ jobs:
           for f in *_amd64.AppImage; do [ -f "$f" ] && cp "$f" HiveBear-x86_64.AppImage; done
           for f in *_amd64.deb; do [ -f "$f" ] && cp "$f" HiveBear-x86_64.deb; done
 
-          # Generate checksums for desktop assets
           sha256sum * > SHA256SUMS-desktop.txt
 
       - name: Generate updater manifest (latest.json)
@@ -468,7 +469,6 @@ jobs:
           BASE_URL="https://github.com/${REPO}/releases/download/${TAG_NAME}"
           PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          # Read signatures (if they exist)
           LINUX_SIG=""
           MACOS_SIG=""
           WINDOWS_SIG=""
@@ -483,7 +483,6 @@ jobs:
             [ -f "$f" ] && WINDOWS_SIG=$(cat "$f")
           done
 
-          # Find update bundle filenames
           LINUX_FILE=""
           MACOS_FILE=""
           WINDOWS_FILE=""
@@ -498,37 +497,42 @@ jobs:
             [ -f "$f" ] && WINDOWS_FILE=$(basename "$f")
           done
 
-          # Build latest.json
-          python3 -c "
-          import json, sys
+          python3 <<EOF
+          import json, os
+
+          base = os.environ['BASE_URL']
+          version = os.environ['VERSION']
+          pub_date = os.environ['PUB_DATE']
+
           platforms = {}
-          if '$LINUX_SIG' and '$LINUX_FILE':
+          if os.environ.get('LINUX_SIG') and os.environ.get('LINUX_FILE'):
               platforms['linux-x86_64'] = {
-                  'signature': '$LINUX_SIG',
-                  'url': '${BASE_URL}/${LINUX_FILE}'
+                  'signature': os.environ['LINUX_SIG'],
+                  'url': f"{base}/{os.environ['LINUX_FILE']}"
               }
-          if '$MACOS_SIG' and '$MACOS_FILE':
+          if os.environ.get('MACOS_SIG') and os.environ.get('MACOS_FILE'):
               platforms['darwin-x86_64'] = {
-                  'signature': '$MACOS_SIG',
-                  'url': '${BASE_URL}/${MACOS_FILE}'
+                  'signature': os.environ['MACOS_SIG'],
+                  'url': f"{base}/{os.environ['MACOS_FILE']}"
               }
               platforms['darwin-aarch64'] = {
-                  'signature': '$MACOS_SIG',
-                  'url': '${BASE_URL}/${MACOS_FILE}'
+                  'signature': os.environ['MACOS_SIG'],
+                  'url': f"{base}/{os.environ['MACOS_FILE']}"
               }
-          if '$WINDOWS_SIG' and '$WINDOWS_FILE':
+          if os.environ.get('WINDOWS_SIG') and os.environ.get('WINDOWS_FILE'):
               platforms['windows-x86_64'] = {
-                  'signature': '$WINDOWS_SIG',
-                  'url': '${BASE_URL}/${WINDOWS_FILE}'
+                  'signature': os.environ['WINDOWS_SIG'],
+                  'url': f"{base}/{os.environ['WINDOWS_FILE']}"
               }
           manifest = {
-              'version': '${VERSION}',
-              'pub_date': '${PUB_DATE}',
+              'version': version,
+              'pub_date': pub_date,
               'platforms': platforms
           }
-          json.dump(manifest, open('release/latest.json', 'w'), indent=2)
+          with open('release/latest.json', 'w') as f:
+              json.dump(manifest, f, indent=2)
           print(json.dumps(manifest, indent=2))
-          "
+          EOF
 
       - name: Upload desktop assets to release
         env:
