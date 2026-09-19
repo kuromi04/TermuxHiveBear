@@ -24,16 +24,27 @@ fi
 
 # 3.5 Instalar el binario de hivebear
 echo "⚙️  Instalando binario de hivebear..."
-if command -v cargo &> /dev/null; then
-    echo "🔨 Compilando hivebear desde el código fuente..."
-    cargo build --release
-    cp target/release/hivebear $PREFIX/bin/hivebear
-    chmod +x $PREFIX/bin/hivebear
-else
+
+RELEASE_URL="https://github.com/kuromi04/TermuxHiveBear/releases/latest/download/hivebear-aarch64"
+
+# Intentamos descargar el precompilado primero, si la URL devuelve 200 o 302
+if curl --output /dev/null --silent --head --fail -L "$RELEASE_URL"; then
     echo "📥 Descargando binario precompilado de hivebear (ARM64)..."
-    # Reemplaza la URL con la ubicación real de tu release en GitHub
-    curl -L -o $PREFIX/bin/hivebear https://github.com/tu-usuario/TermuxHiveBear/releases/latest/download/hivebear-aarch64
+    curl -L -o $PREFIX/bin/hivebear "$RELEASE_URL"
     chmod +x $PREFIX/bin/hivebear
+elif command -v cargo &> /dev/null; then
+    echo "🔨 No se encontró binario precompilado en GitHub. Compilando desde el código fuente..."
+    # Hacemos trampa temporal para el build script de llama-cpp-sys
+    export ANDROID_NDK=$PREFIX
+    if cargo build --release; then
+        cp target/release/hivebear $PREFIX/bin/hivebear
+        chmod +x $PREFIX/bin/hivebear
+    else
+        echo "⚠️ Error al compilar hivebear nativamente en Termux (Falta NDK)."
+        echo "⚠️ Sube el binario precompilado a los Releases de GitHub para evitar este problema."
+    fi
+else
+    echo "❌ No se encontró cargo ni un release precompilado."
 fi
 
 # 4. Crear alias/comandos globales con variaciones de mayúsculas/minúsculas
