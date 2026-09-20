@@ -25,13 +25,15 @@ fi
 # 3.5 Instalar el binario de hivebear
 echo "⚙️  Instalando binario de hivebear..."
 
-RELEASE_URL="https://github.com/kuromi04/TermuxHiveBear/releases/latest/download/hivebear-aarch64"
+RELEASE_URL="https://github.com/kuromi04/TermuxHiveBear/releases/latest/download/hivebear-aarch64-linux-android.tar.gz"
 
 # Intentamos descargar el precompilado primero, si la URL devuelve 200 o 302
 if curl --output /dev/null --silent --head --fail -L "$RELEASE_URL"; then
     echo "📥 Descargando binario precompilado de hivebear (ARM64)..."
-    curl -L -o $PREFIX/bin/hivebear "$RELEASE_URL"
+    curl -L -o $PREFIX/tmp/hivebear.tar.gz "$RELEASE_URL"
+    tar xzf $PREFIX/tmp/hivebear.tar.gz -C $PREFIX/bin/
     chmod +x $PREFIX/bin/hivebear
+    rm -f $PREFIX/tmp/hivebear.tar.gz
 elif command -v cargo &> /dev/null; then
     echo "🔨 No se encontró binario precompilado en GitHub. Compilando desde el código fuente..."
     # Hacemos trampa temporal para el build script de llama-cpp-sys
