@@ -211,6 +211,7 @@ fn build_sampler(model: &LlamaModel, req: &GenerateRequest, seed: u32) -> LlamaS
     // Penalties (repeat, frequency, presence)
     if s.repeat_penalty != 1.0 || s.frequency_penalty != 0.0 || s.presence_penalty != 0.0 {
         samplers.push(LlamaSampler::penalties(
+            model.n_vocab(),
             64, // look-back window
             s.repeat_penalty,
             s.frequency_penalty,
