@@ -33,7 +33,7 @@ encoding_rs = "0.8"
 base64 = "0.22"
 
 # Optional engines (feature-gated)
-llama-cpp-2 = { version = "0.1", optional = true }
+llama-cpp-2 = { version = "=0.1.141", optional = true }
 candle-core = { version = "0.8", optional = true }
 candle-transformers = { version = "0.8", optional = true }
 candle-nn = { version = "0.8", optional = true }
