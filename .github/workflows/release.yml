@@ -69,17 +69,34 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-${{ matrix.target }}-cargo-
 
+      - name: Setup Android NDK
+        if: matrix.target == 'aarch64-linux-android'
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26b
+
       - name: Install cross (aarch64-linux)
-        if: matrix.use_cross
+        if: matrix.use_cross && matrix.target != 'aarch64-linux-android'
         run: cargo install cross@0.2.5 --locked
 
       - name: Add target
-        if: "!matrix.use_cross"
+        if: "!matrix.use_cross || matrix.target == 'aarch64-linux-android'"
         run: rustup target add ${{ matrix.target }}
 
+      - name: Install cargo-ndk
+        if: matrix.target == 'aarch64-linux-android'
+        run: cargo install cargo-ndk
+
       - name: Build with cross
-        if: matrix.use_cross
+        if: matrix.use_cross && matrix.target != 'aarch64-linux-android'
         run: cross build --release -p hivebear-cli --target ${{ matrix.target }}
+
+      - name: Build with cargo-ndk
+        if: matrix.target == 'aarch64-linux-android'
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: cargo ndk -t arm64-v8a build --release -p hivebear-cli
 
       - name: Build with cargo (default features)
         if: "!matrix.use_cross && matrix.features == ''"
@@ -464,10 +481,15 @@ jobs:
         env:
           TAG_NAME: ${{ github.ref_name }}
           REPO: ${{ github.repository }}
+          VERSION: ${{ github.ref_name }}
+          PUB_DATE: ${{ github.event.head_commit.timestamp }}
         run: |
+          # Quitar la "v" inicial del tag para la versión
           VERSION="${TAG_NAME#v}"
           BASE_URL="https://github.com/${REPO}/releases/download/${TAG_NAME}"
           PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          export VERSION BASE_URL PUB_DATE
 
           LINUX_SIG=""
           MACOS_SIG=""
@@ -497,7 +519,10 @@ jobs:
             [ -f "$f" ] && WINDOWS_FILE=$(basename "$f")
           done
 
-          python3 <<EOF
+          export LINUX_SIG MACOS_SIG WINDOWS_SIG
+          export LINUX_FILE MACOS_FILE WINDOWS_FILE
+
+          python3 <<'EOF'
           import json, os
 
           base = os.environ['BASE_URL']
