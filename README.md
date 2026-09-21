@@ -64,36 +64,31 @@ TermuxHiveBear shines when connected to the **Mesh Network**. You can collaborat
 | **🚀** | **Run Mesh Models (Spend Karma)** | Use your accumulated Karma to execute massive, heavy AI models that would normally crash your phone. The network divides the work among all active peers! |
 | **📡** | **Network Status** | View real-time statistics of the Mesh, including how many devices are currently connected to the coordinator and ready to help. |
 
-### 🛠️ Termux Setup & Execution Commands
+### 🎛️ Interactive Menu Options Explained
+When you run `termuxhivebear`, you will see a main menu. Here is what each option does:
 
-#### 1. Create Model Directory & Download GGUF Weights
-Due to HuggingFace API constraints on mobile shells, manual model downloading is recommended:
-```bash
-mkdir -p ~/.cache/hivebear/models
-curl -L -o ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
-  https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf
-```
+1. **💬 Start Interactive Chat:** Opens a terminal chat with any AI model you have downloaded. Completely offline.
+2. **🌐 Start API Server:** Instead of a text chat, this starts a background server (`http://localhost:11434`) that mimics the **OpenAI / Ollama API**. You can connect external GUI apps (like NextChat, AnythingLLM) or code editors to your phone, tricking them into using your local model instead of paying for ChatGPT.
+3. **🛑 Stop API Server:** Kills the background API server started in Option 2 to free up RAM.
+4. **📊 View Hardware Recommendations:** Analyzes your Android's CPU and RAM to recommend which models will run smoothly without crashing.
+5. **📦 Download Qwen 2.5 0.5B:** Downloads the default, highly optimized AI model to get you started immediately.
+6. **💾 View Used Disk Storage:** Checks how much storage space your downloaded models are taking up.
+7. **❓ View Full HiveBear Help:** Displays advanced CLI arguments for power users.
+8. **🌐 Switch Language:** Toggles the menu interface between English and Spanish.
+9. **🔍 Search and Download Models:** Lets you search for any model directly from HuggingFace and download it automatically.
+10. **🗑️ Manage Local Models:** Lists all downloaded models and allows you to easily delete the ones you no longer use to free up space.
+11. **🔄 Update TermuxHiveBear:** Automatically pulls the latest code from GitHub and updates your installation.
+12. **🕸️ P2P Mesh Network:** Opens the Mesh sub-menu to Contribute (earn Karma) or Run distributed models.
 
-#### 2. Run HiveBear Local Inference (Private Chat)
+### 🛠️ Manual Execution Commands
+If you prefer bypassing the interactive menu, you can use the raw binaries:
 ```bash
+# Run a specific model interactively
 hivebear run ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf
-```
 
-#### 3. Run API Server Mode (OpenAI / Ollama Endpoint)
-```bash
+# Start the API server manually
 hivebear serve
 ```
-
-### 🛰️ Available Commands Reference
-
-| Command | Description |
-|---|---|
-| `termuxhivebear` | Open interactive CLI menu |
-| `hivebear run <model_path>` | Run interactive chat with a local `.gguf` model |
-| `hivebear serve` | Start an OpenAI & Ollama compatible local API server |
-| `hivebear recommend` | Show hardware profile and recommended models |
-| `hivebear share` | Share local model via public/local web link |
-| `hivebear mesh` | Manage P2P distributed inference mesh |
 
 ---
 
@@ -123,36 +118,31 @@ El verdadero poder de TermuxHiveBear se libera al usar la **Red Mesh**. ¡Puedes
 | **🚀** | **Ejecutar Modelo (Gastar Karma)** | Usa el Karma acumulado para solicitar la ejecución de modelos de IA muy pesados. El coordinador dividirá mágicamente la tarea entre todos los celulares conectados a la malla. |
 | **📡** | **Estado de la Red** | Revisa en tiempo real las estadísticas de la red Mesh, viendo cuántos nodos y dispositivos están activos y listos para procesar información. |
 
-### 🛠️ Comandos de Configuración y Ejecución en Termux
+### 🎛️ Explicación de las Opciones del Menú
+Al ejecutar `termuxhivebear`, verás un menú principal interactivo. Esto es lo que hace cada opción:
 
-#### 1. Crear Directorio de Modelos y Descargar Pesos GGUF
-Para garantizar la compatibilidad en Termux, se recomienda descargar el modelo manualmente:
-```bash
-mkdir -p ~/.cache/hivebear/models
-curl -L -o ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
-  https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf
-```
+1. **💬 Iniciar Chat Interactivo:** Abre un chat de texto en tu pantalla con cualquier modelo de IA que hayas descargado. 100% sin internet.
+2. **🌐 Iniciar Servidor de API:** En lugar de abrir un chat, enciende un servidor invisible en el fondo (`http://localhost:11434`) que habla el mismo idioma que la **API de OpenAI y Ollama**. Esto te permite conectar aplicaciones gráficas externas (como NextChat), editores de código o scripts a tu celular, "engañándolos" para que usen tu IA local gratuita en lugar de pagar por ChatGPT.
+3. **🛑 Detener Servidor API:** Apaga el servidor encendido en la Opción 2 para liberar la memoria RAM de tu celular.
+4. **📊 Ver Recomendaciones de Hardware:** Analiza el procesador y la memoria libre de tu Android para recomendarte qué tamaño de modelo funcionará fluido sin trabar tu celular.
+5. **📦 Descargar Modelo Qwen 2.5 0.5B:** Descarga automáticamente el modelo por defecto, optimizado y ultraligero para que puedas empezar a probar la IA de inmediato.
+6. **💾 Ver Almacenamiento Utilizado:** Calcula cuánto espacio de tu memoria interna están ocupando los modelos descargados.
+7. **❓ Ver Ayuda Completa:** Muestra comandos y argumentos avanzados para usuarios experimentados.
+8. **🌐 Cambiar Idioma:** Alterna toda la interfaz del menú entre Español e Inglés.
+9. **🔍 Buscar y Descargar Modelos:** Te permite buscar cualquier modelo directamente en HuggingFace y descargarlo con un solo clic.
+10. **🗑️ Gestionar Modelos Locales:** Te muestra una lista de los modelos que tienes guardados y te permite borrar los que ya no uses para recuperar espacio.
+11. **🔄 Actualizar TermuxHiveBear:** Se conecta a GitHub y descarga la última versión del código para mantener tu instalación siempre al día.
+12. **🕸️ Red Mesh P2P:** Abre el submenú de la red compartida para Contribuir (ganar Karma) o usar la potencia distribuida para modelos pesados.
 
-#### 2. Ejecutar Inferencia Local con HiveBear (Chat Privado)
+### 🛠️ Comandos de Ejecución Manual
+Si prefieres saltarte el menú interactivo, puedes usar los comandos directos:
 ```bash
+# Iniciar chat interactivo directamente con un modelo
 hivebear run ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf
-```
 
-#### 3. Modo Servidor de API (Endpoint OpenAI / Ollama)
-```bash
+# Iniciar el servidor API manualmente
 hivebear serve
 ```
-
-### 🛰️ Referencia de Comandos
-
-| Comando | Descripción |
-|---|---|
-| `termuxhivebear` | Abre el menú interactivo por CLI |
-| `hivebear run <ruta_modelo>` | Inicia el chat interactivo con el modelo `.gguf` |
-| `hivebear serve` | Inicia el servidor de API compatible con OpenAI / Ollama |
-| `hivebear recommend` | Muestra el perfil de hardware y modelos recomendados |
-| `hivebear share` | Comparte el modelo a través de un enlace web local/público |
-| `hivebear mesh` | Administra la red P2P distribuida |
 
 ---
 
