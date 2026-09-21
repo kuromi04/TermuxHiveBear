@@ -48,21 +48,25 @@ termuxhivebear
 
 * Download latest APK from GitHub: [termux/termux-app Releases](https://github.com/termux/termux-app/releases)
 
-### ✨ Features
-* 🚀 **100% Offline & Private:** Run LLMs locally on Android without sending data to external cloud servers.
-* ⚡ **Optimized for Mobile Hardware:** Light RAM footprint (~400MB - 1GB) with high performance (20-40+ tokens/sec).
-* 🔒 **QUIC + TLS 1.3 Encryption:** Secure P2P networking and mesh node inter-communication.
-* 🌐 **OpenAI / Ollama Compatible API:** Built-in API server (`hivebear serve`) to integrate with local apps.
+### ✨ Core Features & Usage Guide
+
+#### 💬 100% Private Local Chat
+By downloading `.gguf` AI models directly to your device, you can run an interactive chat right from your terminal or via the API. 
+* **🔒 Maximum Security:** Your conversations are completely private. No data, prompts, or personal information ever leaves your phone.
+* **📵 Offline Capable:** Chat anywhere, anytime, without needing an internet connection.
+
+#### 🕸️ Decentralized P2P Mesh Network (The Karma System)
+TermuxHiveBear shines when connected to the **Mesh Network**. You can collaboratively run AI models that are too heavy for a single phone by splitting the workload across multiple devices!
+
+| Option | Action | Description |
+| :---: | :--- | :--- |
+| **🛠️** | **Contribute (Earn Karma)** | Connect your phone as a worker node. Your device will process small fragments of models for the network. In exchange, you **earn Karma points**. |
+| **🚀** | **Run Mesh Models (Spend Karma)** | Use your accumulated Karma to execute massive, heavy AI models that would normally crash your phone. The network divides the work among all active peers! |
+| **📡** | **Network Status** | View real-time statistics of the Mesh, including how many devices are currently connected to the coordinator and ready to help. |
 
 ### 🛠️ Termux Setup & Execution Commands
 
-#### 1. Prepare Environment & Install Dependencies
-Open Termux and run:
-```bash
-pkg update && pkg install git curl -y
-```
-
-#### 2. Create Model Directory & Download GGUF Weights
+#### 1. Create Model Directory & Download GGUF Weights
 Due to HuggingFace API constraints on mobile shells, manual model downloading is recommended:
 ```bash
 mkdir -p ~/.cache/hivebear/models
@@ -70,12 +74,12 @@ curl -L -o ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
   https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf
 ```
 
-#### 3. Run HiveBear Local Inference
+#### 2. Run HiveBear Local Inference (Private Chat)
 ```bash
 hivebear run ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf
 ```
 
-#### 4. Run API Server Mode (OpenAI / Ollama Endpoint)
+#### 3. Run API Server Mode (OpenAI / Ollama Endpoint)
 ```bash
 hivebear serve
 ```
@@ -103,21 +107,25 @@ hivebear serve
 
 * Descargar el APK oficial desde GitHub: [termux/termux-app Releases](https://github.com/termux/termux-app/releases)
 
-### ✨ Características Principales
-* 🚀 **100% Privado y Offline:** Ejecuta modelos de inteligencia artificial en tu teléfono sin enviar datos a servidores externos.
-* ⚡ **Optimizado para Móviles:** Bajo consumo de RAM (~400MB - 1GB) con alta velocidad de respuesta (20-40+ tokens/seg).
-* 🔒 **Cifrado QUIC + TLS 1.3:** Protocolos de red seguros para la malla P2P entre nodos.
-* 🌐 **API Compatible con OpenAI / Ollama:** Servidor de API integrado (`hivebear serve`) para conectar con otras apps.
+### ✨ Funciones Principales y Guía de Uso
+
+#### 💬 Chat Local 100% Privado y Seguro
+Al descargar los modelos de IA en formato `.gguf` directamente a tu dispositivo, puedes tener conversaciones inteligentes desde tu terminal.
+* **🔒 Seguridad Máxima:** Tu información es completamente privada. Como la IA se ejecuta localmente en tu celular, ningún dato, pregunta o conversación se envía a la nube ni sale de tu dispositivo.
+* **📵 Funciona Sin Internet:** Puedes chatear en cualquier momento y lugar, totalmente offline.
+
+#### 🕸️ Red Mesh P2P Descentralizada (El Sistema de Karma)
+El verdadero poder de TermuxHiveBear se libera al usar la **Red Mesh**. ¡Puedes ejecutar modelos de IA gigantescos (que normalmente harían colapsar tu celular) dividiendo el trabajo entre múltiples dispositivos!
+
+| Opción | Acción | Descripción |
+| :---: | :--- | :--- |
+| **🛠️** | **Contribuir (Ganar Karma)** | Conecta tu celular como "trabajador". Tu dispositivo procesará pequeños fragmentos de modelos para la red. A cambio de tu poder de procesamiento, **ganas puntos de Karma**. |
+| **🚀** | **Ejecutar Modelo (Gastar Karma)** | Usa el Karma acumulado para solicitar la ejecución de modelos de IA muy pesados. El coordinador dividirá mágicamente la tarea entre todos los celulares conectados a la malla. |
+| **📡** | **Estado de la Red** | Revisa en tiempo real las estadísticas de la red Mesh, viendo cuántos nodos y dispositivos están activos y listos para procesar información. |
 
 ### 🛠️ Comandos de Configuración y Ejecución en Termux
 
-#### 1. Preparar el Entorno e Instalar Dependencias
-Abre Termux y ejecuta:
-```bash
-pkg update && pkg install git curl -y
-```
-
-#### 2. Crear Directorio de Modelos y Descargar Pesos GGUF
+#### 1. Crear Directorio de Modelos y Descargar Pesos GGUF
 Para garantizar la compatibilidad en Termux, se recomienda descargar el modelo manualmente:
 ```bash
 mkdir -p ~/.cache/hivebear/models
@@ -125,12 +133,12 @@ curl -L -o ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
   https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf
 ```
 
-#### 3. Ejecutar Inferencia Local con HiveBear
+#### 2. Ejecutar Inferencia Local con HiveBear (Chat Privado)
 ```bash
 hivebear run ~/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf
 ```
 
-#### 4. Modo Servidor de API (Endpoint OpenAI / Ollama)
+#### 3. Modo Servidor de API (Endpoint OpenAI / Ollama)
 ```bash
 hivebear serve
 ```
