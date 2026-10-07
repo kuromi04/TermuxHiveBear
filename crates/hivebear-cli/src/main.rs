@@ -2222,7 +2222,6 @@ async fn cmd_mesh_run(
     };
 
     if let Some(peer_addr) = peer_addr_opt {
-
         // Create identity and QUIC transport for the client side
         let paths = hivebear_core::config::paths::AppPaths::new();
         let identity_path = paths.data_dir.join("node_identity.key");
