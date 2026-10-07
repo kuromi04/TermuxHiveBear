@@ -5,6 +5,8 @@
 
 set -e
 
+export LD_LIBRARY_PATH="$PREFIX/lib:${LD_LIBRARY_PATH:-}"
+
 MODEL_PATH="$HOME/.cache/hivebear/models/qwen2.5-0.5b-instruct-q4_k_m.gguf"
 
 # Language state (default: Spanish / Español)
@@ -464,6 +466,15 @@ show_menu() {
             show_menu
             ;;
         12)
+            # Ensure config points to the right coordinator so mesh status/run connect to the correct node
+            CONFIG_FILE="$HOME/.config/hivebear/config.toml"
+            if [ ! -f "$CONFIG_FILE" ]; then
+                hivebear config reset >/dev/null 2>&1 || true
+            fi
+            if [ -f "$CONFIG_FILE" ]; then
+                sed -i 's|coordination_server = ".*"|coordination_server = "http://34.66.188.245"|' "$CONFIG_FILE"
+            fi
+
             if [ "$LANG_MODE" = "ES" ]; then
                 echo "🕸️ Opciones de Red Mesh P2P:"
                 echo " 1. Prestar CPU a la red (contribute)"
@@ -482,26 +493,86 @@ show_menu() {
                             hivebear contribute --coordinator http://34.66.188.245 --port 7882
                         fi
                         ;;
-                    2) hivebear mesh status; read -p "Presiona Enter..." ;;
-                    3) 
-                        mapfile -t LOCAL_MODELS < <(ls -1 "$HOME/.cache/hivebear/models/" 2>/dev/null || true)
-                        if [ ${#LOCAL_MODELS[@]} -eq 0 ]; then
-                            echo "⚠️ No se encontraron modelos. Usando Qwen 2.5 por defecto."
-                            mpath="$MODEL_PATH"
+                    2) 
+                        hivebear mesh status
+                        echo ""
+                        echo -e "\e[1;36mNodos activos en el Coordinador (http://34.66.188.245):\e[0m"
+                        if command -v jq &> /dev/null; then
+                            curl -s http://34.66.188.245/peers | jq -r '.[] | "- IP: \(.external_addr // .addr) | Modelo: \(.serving_model_id // "No especificado")"' || echo "No se encontraron nodos remotos."
                         else
-                            echo "📦 Modelos disponibles:"
-                            for i in "${!LOCAL_MODELS[@]}"; do echo "  $((i+1))) ${LOCAL_MODELS[$i]}"; done
-                            echo "  0) Volver al menú principal"
-                            read -p " Selecciona un modelo [0-${#LOCAL_MODELS[@]}]: " RUN_INDEX
-                            if [ "$RUN_INDEX" = "0" ]; then show_menu; return; fi
-                            if [[ "$RUN_INDEX" =~ ^[0-9]+$ ]] && [ "$RUN_INDEX" -ge 1 ] && [ "$RUN_INDEX" -le "${#LOCAL_MODELS[@]}" ]; then
-                                mpath="$HOME/.cache/hivebear/models/${LOCAL_MODELS[$((RUN_INDEX-1))]}"
-                            else
-                                echo "❌ Opción inválida. Usando modelo por defecto."
-                                mpath="$MODEL_PATH"
-                            fi
+                            curl -s http://34.66.188.245/peers | grep -oE '"external_addr":"[^"]*"|"serving_model_id":[^,}]*' || echo "No se encontraron nodos remotos."
                         fi
-                        RUST_LOG=error hivebear mesh run "$mpath"
+                        echo ""
+                        read -p "Presiona Enter..." 
+                        ;;
+                     3)
+                        echo "🔍 Buscando nodos y modelos en la red..."
+                        if ! command -v jq &> /dev/null || ! command -v curl &> /dev/null; then pkg install jq curl -y > /dev/null 2>&1; fi
+                        PEERS_JSON=$(curl -s http://34.66.188.245/peers)
+                        
+                        # Extraer todos los nodos: model_id, external_addr, addr (interna)
+                        mapfile -t REMOTE_MODELS < <(echo "$PEERS_JSON" | jq -r '.[] | "\(.serving_model_id // "Desconocido")|\(.external_addr // .addr)|\(.addr // "")"' 2>/dev/null)
+                        
+                        if [ ${#REMOTE_MODELS[@]} -eq 0 ]; then
+                            echo "⚠️ No se encontraron nodos activos en el coordinador."
+                            read -p "Presiona Enter para continuar..."
+                            show_menu; return
+                        fi
+                        
+                        echo "📦 Nodos disponibles en la red P2P:"
+                        for i in "${!REMOTE_MODELS[@]}"; do
+                            RAW_MODEL=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f1)
+                            MODEL_BASENAME=$(basename "$RAW_MODEL")
+                            EXT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f2)
+                            INT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f3)
+                            echo "  $((i+1))) Nodo: $EXT_ADDR | Local: ${INT_ADDR:-N/A} | Modelo: $MODEL_BASENAME"
+                        done
+                        echo "  0) Volver al menú principal"
+                        read -p " Selecciona un nodo al cual conectarte [0-${#REMOTE_MODELS[@]}]: " RUN_INDEX
+                        
+                        if [ "$RUN_INDEX" = "0" ]; then show_menu; return; fi
+                        
+                        if [[ "$RUN_INDEX" =~ ^[0-9]+$ ]] && [ "$RUN_INDEX" -ge 1 ] && [ "$RUN_INDEX" -le "${#REMOTE_MODELS[@]}" ]; then
+                            SELECTED="${REMOTE_MODELS[$((RUN_INDEX-1))]}"
+                            RAW_MODEL=$(echo "$SELECTED" | cut -d'|' -f1)
+                            RAW_EXT_ADDR=$(echo "$SELECTED" | cut -d'|' -f2)
+                            RAW_INT_ADDR=$(echo "$SELECTED" | cut -d'|' -f3)
+                            
+                            IP_ONLY=$(echo "$RAW_EXT_ADDR" | cut -d':' -f1)
+                            PORT_ONLY=$(echo "$RAW_EXT_ADDR" | cut -d':' -f2)
+                            
+                            INT_PORT=$(echo "$RAW_INT_ADDR" | cut -d':' -f2)
+                            INT_PORT=${INT_PORT:-${PORT_ONLY:-7878}}
+                            
+                            echo ""
+                            echo -e "\e[1;33m🌐 La IP pública registrada del nodo es $IP_ONLY (Puerto público: ${PORT_ONLY:-7878})\e[0m"
+                            echo -e "\e[1;36m🏠 La dirección local interna es ${RAW_INT_ADDR:-"Desconocida"}\e[0m"
+                            echo "Si estás en el MISMO WiFi que la PC, usa la IP Local de tu PC (ej. 192.168.0.4 o 192.168.0.4:7878)."
+                            read -p "Ingresa la IP Local [Enter para usar la registrada]: " CUSTOM_IP
+                            
+                            if [ -n "$CUSTOM_IP" ]; then
+                                if [[ "$CUSTOM_IP" == *":"* ]]; then
+                                    TARGET_ADDR="$CUSTOM_IP"
+                                else
+                                    TARGET_ADDR="$CUSTOM_IP:$INT_PORT"
+                                fi
+                            else
+                                TARGET_ADDR="$IP_ONLY:${PORT_ONLY:-7878}"
+                            fi
+                        else
+                            echo "❌ Opción inválida."
+                            read -p "Presiona Enter..."
+                            show_menu; return
+                        fi
+                        
+                        killall -9 hivebear 2>/dev/null || true
+                        
+                        echo -e "\e[1;36m🔗 Conectando al nodo remoto en $TARGET_ADDR...\e[0m"
+                        
+                        MODEL_ID="${RAW_MODEL}"
+                        if [ "$MODEL_ID" = "Desconocido" ] || [ -z "$MODEL_ID" ]; then MODEL_ID="remote_model"; fi
+                        
+                        RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR"
                        ;;
                     4) hivebear share ;;
                     *) echo "Opción inválida" ;;
@@ -524,26 +595,85 @@ show_menu() {
                             hivebear contribute --coordinator http://34.66.188.245 --port 7882
                         fi
                         ;;
-                    2) hivebear mesh status; read -p "Press Enter..." ;;
-                    3) 
-                        mapfile -t LOCAL_MODELS < <(ls -1 "$HOME/.cache/hivebear/models/" 2>/dev/null || true)
-                        if [ ${#LOCAL_MODELS[@]} -eq 0 ]; then
-                            echo "⚠️ No models found. Using default Qwen 2.5."
-                            mpath="$MODEL_PATH"
+                    2) 
+                        hivebear mesh status
+                        echo ""
+                        echo -e "\e[1;36mActive nodes in Coordinator (http://34.66.188.245):\e[0m"
+                        if command -v jq &> /dev/null; then
+                            curl -s http://34.66.188.245/peers | jq -r '.[] | "- IP: \(.external_addr // .addr) | Model: \(.serving_model_id // "Not specified")"' || echo "No remote nodes found."
                         else
-                            echo "📦 Available models:"
-                            for i in "${!LOCAL_MODELS[@]}"; do echo "  $((i+1))) ${LOCAL_MODELS[$i]}"; done
-                            echo "  0) Back to main menu"
-                            read -p " Select a model [0-${#LOCAL_MODELS[@]}]: " RUN_INDEX
-                            if [ "$RUN_INDEX" = "0" ]; then show_menu; return; fi
-                            if [[ "$RUN_INDEX" =~ ^[0-9]+$ ]] && [ "$RUN_INDEX" -ge 1 ] && [ "$RUN_INDEX" -le "${#LOCAL_MODELS[@]}" ]; then
-                                mpath="$HOME/.cache/hivebear/models/${LOCAL_MODELS[$((RUN_INDEX-1))]}"
-                            else
-                                echo "❌ Invalid option. Using default model."
-                                mpath="$MODEL_PATH"
-                            fi
+                            curl -s http://34.66.188.245/peers | grep -oE '"external_addr":"[^"]*"|"serving_model_id":[^,}]*' || echo "No remote nodes found."
                         fi
-                        RUST_LOG=error hivebear mesh run "$mpath"
+                        echo ""
+                        read -p "Press Enter..." 
+                        ;;
+                     3)
+                        echo "🔍 Searching for nodes and models on the network..."
+                        if ! command -v jq &> /dev/null || ! command -v curl &> /dev/null; then pkg install jq curl -y > /dev/null 2>&1; fi
+                        PEERS_JSON=$(curl -s http://34.66.188.245/peers)
+                        
+                        mapfile -t REMOTE_MODELS < <(echo "$PEERS_JSON" | jq -r '.[] | "\(.serving_model_id // "Unknown")|\(.external_addr // .addr)|\(.addr // "")"' 2>/dev/null)
+                        
+                        if [ ${#REMOTE_MODELS[@]} -eq 0 ]; then
+                            echo "⚠️ No active nodes found on the coordinator."
+                            read -p "Press Enter to continue..."
+                            show_menu; return
+                        fi
+                        
+                        echo "📦 Nodes available on the P2P network:"
+                        for i in "${!REMOTE_MODELS[@]}"; do
+                            RAW_MODEL=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f1)
+                            MODEL_BASENAME=$(basename "$RAW_MODEL")
+                            EXT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f2)
+                            INT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f3)
+                            echo "  $((i+1))) Node: $EXT_ADDR | Local: ${INT_ADDR:-N/A} | Model: $MODEL_BASENAME"
+                        done
+                        echo "  0) Back to main menu"
+                        read -p " Select a node to connect to [0-${#REMOTE_MODELS[@]}]: " RUN_INDEX
+                        
+                        if [ "$RUN_INDEX" = "0" ]; then show_menu; return; fi
+                        
+                        if [[ "$RUN_INDEX" =~ ^[0-9]+$ ]] && [ "$RUN_INDEX" -ge 1 ] && [ "$RUN_INDEX" -le "${#REMOTE_MODELS[@]}" ]; then
+                            SELECTED="${REMOTE_MODELS[$((RUN_INDEX-1))]}"
+                            RAW_MODEL=$(echo "$SELECTED" | cut -d'|' -f1)
+                            RAW_EXT_ADDR=$(echo "$SELECTED" | cut -d'|' -f2)
+                            RAW_INT_ADDR=$(echo "$SELECTED" | cut -d'|' -f3)
+                            
+                            IP_ONLY=$(echo "$RAW_EXT_ADDR" | cut -d':' -f1)
+                            PORT_ONLY=$(echo "$RAW_EXT_ADDR" | cut -d':' -f2)
+                            
+                            INT_PORT=$(echo "$RAW_INT_ADDR" | cut -d':' -f2)
+                            INT_PORT=${INT_PORT:-${PORT_ONLY:-7878}}
+                            
+                            echo ""
+                            echo -e "\e[1;33m🌐 The node's registered public IP is $IP_ONLY (Public port: ${PORT_ONLY:-7878})\e[0m"
+                            echo -e "\e[1;36m🏠 The internal local address is ${RAW_INT_ADDR:-"Unknown"}\e[0m"
+                            echo "If you are on the SAME WiFi as your PC, use your PC's Local IP (e.g. 192.168.0.4 or 192.168.0.4:7878)."
+                            read -p "Enter Local IP [Press Enter to use registered IP]: " CUSTOM_IP
+                            
+                            if [ -n "$CUSTOM_IP" ]; then
+                                if [[ "$CUSTOM_IP" == *":"* ]]; then
+                                    TARGET_ADDR="$CUSTOM_IP"
+                                else
+                                    TARGET_ADDR="$CUSTOM_IP:$INT_PORT"
+                                fi
+                            else
+                                TARGET_ADDR="$IP_ONLY:${PORT_ONLY:-7878}"
+                            fi
+                        else
+                            echo "❌ Invalid option."
+                            read -p "Press Enter..."
+                            show_menu; return
+                        fi
+                        
+                        killall -9 hivebear 2>/dev/null || true
+                        
+                        echo -e "\e[1;36m🔗 Connecting to remote node at $TARGET_ADDR...\e[0m"
+                        
+                        MODEL_ID="${RAW_MODEL}"
+                        if [ "$MODEL_ID" = "Unknown" ] || [ -z "$MODEL_ID" ]; then MODEL_ID="remote_model"; fi
+                        
+                        RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR"
                        ;;
                     4) hivebear share ;;
                     *) echo "Invalid option" ;;

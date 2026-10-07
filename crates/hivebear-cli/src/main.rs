@@ -365,6 +365,10 @@ enum MeshAction {
         /// Temperature for sampling
         #[arg(long, default_value = "0.7")]
         temperature: f32,
+
+        /// Direct peer address to connect to (IP:PORT)
+        #[arg(long)]
+        peer: Option<String>,
     },
 
     /// Leave the mesh
@@ -2074,8 +2078,9 @@ async fn cmd_mesh(action: MeshAction) {
             prompt,
             context_length,
             temperature,
+            peer,
         } => {
-            cmd_mesh_run(model, prompt, context_length, temperature, hw).await;
+            cmd_mesh_run(model, prompt, context_length, temperature, peer, hw).await;
         }
         MeshAction::Stop => {
             println!("Sending stop signal to running mesh node...");
@@ -2154,9 +2159,11 @@ async fn cmd_mesh_run(
     prompt: Option<String>,
     context_length: u32,
     temperature: f32,
+    peer_override: Option<String>,
     hw: hivebear_core::HardwareProfile,
 ) {
     use std::io::Write;
+    use std::net::SocketAddr;
     use std::path::Path;
     use std::sync::Arc;
 
@@ -2164,7 +2171,7 @@ async fn cmd_mesh_run(
     let model_path_str = registry_commands::resolve_model(&model, &hw).await;
     let model_path = Path::new(&model_path_str);
 
-    if !model_path.exists() {
+    if peer_override.is_none() && !model_path.exists() {
         eprintln!(
             "{}: Model not found at '{}'",
             "Error".red().bold(),
@@ -2172,31 +2179,49 @@ async fn cmd_mesh_run(
         );
         eprintln!(
             "{}",
-            "Install a model first with 'hivebear install <model>'".dimmed()
+            "Install a model first or specify a remote --peer <IP:PORT>".dimmed()
         );
         return;
     }
 
-    // ── Attempt peer discovery ──────────────────────────────────────
+    // ── Determine peer address ─────────────────────────────────────
 
-    let config = hivebear_core::Config::load();
-    let discovery = Arc::new(
-        hivebear_mesh::discovery::server::CoordinationServerClient::new(
-            config.mesh.coordination_server.clone(),
-        ),
-    );
-    let peers = discovery.find_peers("", 0).await.unwrap_or_default();
-
-    if !peers.is_empty() {
-        println!(
-            "{} {} peer(s) available — routing inference to best peer",
-            "Mesh:".bold().magenta(),
-            peers.len()
+    let peer_addr_opt: Option<SocketAddr> = if let Some(ref peer_str) = peer_override {
+        match peer_str.parse::<SocketAddr>() {
+            Ok(addr) => Some(addr),
+            Err(e) => {
+                eprintln!(
+                    "{}: Invalid peer address '{}': {e}",
+                    "Error".red().bold(),
+                    peer_str
+                );
+                return;
+            }
+        }
+    } else {
+        let config = hivebear_core::Config::load();
+        let discovery = Arc::new(
+            hivebear_mesh::discovery::server::CoordinationServerClient::new(
+                config.mesh.coordination_server.clone(),
+            ),
         );
+        let peers = discovery.find_peers("", 0).await.unwrap_or_default();
 
-        // Pick the best peer (first available with the model)
-        let best_peer = &peers[0];
-        let peer_addr = best_peer.addr;
+        if !peers.is_empty() {
+            println!(
+                "{} {} peer(s) available — routing inference to best peer",
+                "Mesh:".bold().magenta(),
+                peers.len()
+            );
+
+            let best_peer = &peers[0];
+            Some(best_peer.external_addr.unwrap_or(best_peer.addr))
+        } else {
+            None
+        }
+    };
+
+    if let Some(peer_addr) = peer_addr_opt {
 
         // Create identity and QUIC transport for the client side
         let paths = hivebear_core::config::paths::AppPaths::new();
