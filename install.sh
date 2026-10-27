@@ -25,12 +25,16 @@ fi
 # 3.5 Instalar el binario de hivebear
 echo "⚙️  Instalando binario de hivebear..."
 
-RELEASE_URL="https://github.com/kuromi04/TermuxHiveBear/releases/latest/download/hivebear-aarch64-linux-android.tar.gz"
+PRIMARY_URL="https://github.com/kuromi04/HiveBear/releases/latest/download/hivebear-aarch64-linux-android.tar.gz"
+FALLBACK_URL="https://github.com/kuromi04/TermuxHiveBear/releases/latest/download/hivebear-aarch64-linux-android.tar.gz"
 
-# Intentamos descargar el precompilado primero, si la URL devuelve 200 o 302
-if curl --output /dev/null --silent --head --fail -L "$RELEASE_URL"; then
-    echo "📥 Descargando binario precompilado de hivebear (ARM64)..."
-    curl -L -o $PREFIX/tmp/hivebear.tar.gz "$RELEASE_URL"
+# Intentamos descargar el binario ARM64 precompilado actualizado
+if curl --output /dev/null --silent --head --fail -L "$PRIMARY_URL"; then
+    echo "📥 Descargando binario precompilado de hivebear (ARM64) desde kuromi04/HiveBear..."
+    curl -L -o $PREFIX/tmp/hivebear.tar.gz "$PRIMARY_URL"
+elif curl --output /dev/null --silent --head --fail -L "$FALLBACK_URL"; then
+    echo "📥 Descargando binario precompilado de hivebear (ARM64) desde kuromi04/TermuxHiveBear..."
+    curl -L -o $PREFIX/tmp/hivebear.tar.gz "$FALLBACK_URL"
     tar xzf $PREFIX/tmp/hivebear.tar.gz -C $PREFIX/bin/
     chmod +x $PREFIX/bin/hivebear
     rm -f $PREFIX/tmp/hivebear.tar.gz
