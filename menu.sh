@@ -570,19 +570,26 @@ show_menu() {
                         echo -e "\e[1;36m🔗 Conectando al nodo remoto en $TARGET_ADDR...\e[0m"
                         
                         MODEL_ID="${RAW_MODEL}"
-                        if [ "$MODEL_ID" = "Desconocido" ] || [ -z "$MODEL_ID" ]; then MODEL_ID="remote_model"; fi
+                        if [ "$MODEL_ID" = "Desconocido" ] || [ -z "$MODEL_ID" ]; then
+                            LOCAL_EXISTING=$(ls -1 $HOME/.cache/hivebear/models/*.gguf 2>/dev/null | head -n1)
+                            if [ -n "$LOCAL_EXISTING" ] && [ -f "$LOCAL_EXISTING" ]; then
+                                MODEL_ID="$LOCAL_EXISTING"
+                            else
+                                MODEL_ID="remote_model"
+                            fi
+                        fi
                         
                         if ! hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
-                            echo -e "\e[1;33m⚠️ Tu binario de hivebear instalado es antiguo y no soporta '--peer'.\e[0m"
-                            echo -e "\e[1;36m🔄 Actualizando binario de hivebear...\e[0m"
+                            echo -e "\e[1;33m⚠️ Tu binario de hivebear instalado no soporta '--peer'.\e[0m"
+                            echo -e "\e[1;36m🔄 Intentando actualizar binario de hivebear...\e[0m"
                             bash "$(dirname "$(realpath "$0")")/install.sh"
                         fi
 
                         if hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
                             RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR"
                         else
-                            echo -e "\e[1;33m⚠️ Ejecutando conexión vía coordinador P2P...\e[0m"
-                            RUST_LOG=error hivebear mesh run "$MODEL_ID"
+                            echo -e "\e[1;33m⚠️ Conectando directamente por red Mesh al peer $TARGET_ADDR...\e[0m"
+                            RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR" 2>/dev/null || RUST_LOG=error hivebear mesh run "$MODEL_ID"
                         fi
                        ;;
                     4) hivebear share ;;
