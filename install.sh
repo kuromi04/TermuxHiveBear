@@ -28,29 +28,46 @@ echo "⚙️  Instalando binario de hivebear..."
 PRIMARY_URL="https://github.com/kuromi04/HiveBear/releases/latest/download/hivebear-aarch64-linux-android.tar.gz"
 FALLBACK_URL="https://github.com/kuromi04/TermuxHiveBear/releases/latest/download/hivebear-aarch64-linux-android.tar.gz"
 
+INSTALLED=0
+
 # Intentamos descargar el binario ARM64 precompilado actualizado
 if curl --output /dev/null --silent --head --fail -L "$PRIMARY_URL"; then
     echo "📥 Descargando binario precompilado de hivebear (ARM64) desde kuromi04/HiveBear..."
-    curl -L -o $PREFIX/tmp/hivebear.tar.gz "$PRIMARY_URL"
-elif curl --output /dev/null --silent --head --fail -L "$FALLBACK_URL"; then
-    echo "📥 Descargando binario precompilado de hivebear (ARM64) desde kuromi04/TermuxHiveBear..."
-    curl -L -o $PREFIX/tmp/hivebear.tar.gz "$FALLBACK_URL"
-    tar xzf $PREFIX/tmp/hivebear.tar.gz -C $PREFIX/bin/
-    chmod +x $PREFIX/bin/hivebear
-    rm -f $PREFIX/tmp/hivebear.tar.gz
-elif command -v cargo &> /dev/null; then
-    echo "🔨 No se encontró binario precompilado en GitHub. Compilando desde el código fuente..."
-    # Hacemos trampa temporal para el build script de llama-cpp-sys
-    export ANDROID_NDK=$PREFIX
-    if cargo build --release; then
-        cp target/release/hivebear $PREFIX/bin/hivebear
-        chmod +x $PREFIX/bin/hivebear
-    else
-        echo "⚠️ Error al compilar hivebear nativamente en Termux (Falta NDK)."
-        echo "⚠️ Sube el binario precompilado a los Releases de GitHub para evitar este problema."
+    if curl -L -f -o "$PREFIX/tmp/hivebear.tar.gz" "$PRIMARY_URL"; then
+        tar xzf "$PREFIX/tmp/hivebear.tar.gz" -C "$PREFIX/bin/"
+        chmod +x "$PREFIX/bin/hivebear"
+        rm -f "$PREFIX/tmp/hivebear.tar.gz"
+        INSTALLED=1
+        echo "✅ Binario de hivebear instalado y actualizado correctamente."
     fi
-else
-    echo "❌ No se encontró cargo ni un release precompilado."
+fi
+
+if [ "$INSTALLED" -eq 0 ] && curl --output /dev/null --silent --head --fail -L "$FALLBACK_URL"; then
+    echo "📥 Descargando binario precompilado de hivebear (ARM64) desde kuromi04/TermuxHiveBear..."
+    if curl -L -f -o "$PREFIX/tmp/hivebear.tar.gz" "$FALLBACK_URL"; then
+        tar xzf "$PREFIX/tmp/hivebear.tar.gz" -C "$PREFIX/bin/"
+        chmod +x "$PREFIX/bin/hivebear"
+        rm -f "$PREFIX/tmp/hivebear.tar.gz"
+        INSTALLED=1
+        echo "✅ Binario de hivebear instalado y actualizado correctamente (fallback)."
+    fi
+fi
+
+if [ "$INSTALLED" -eq 0 ]; then
+    if command -v cargo &> /dev/null; then
+        echo "🔨 Compilando hivebear desde código fuente con cargo en Termux..."
+        export ANDROID_NDK=$PREFIX
+        if cargo build --release -p hivebear-cli --bin hivebear --no-default-features --features "api,cloud,candle"; then
+            cp target/release/hivebear "$PREFIX/bin/hivebear"
+            chmod +x "$PREFIX/bin/hivebear"
+            INSTALLED=1
+            echo "✅ Compilado e instalado correctamente con cargo."
+        else
+            echo "⚠️ Error al compilar hivebear en Termux."
+        fi
+    else
+        echo "❌ No se encontró cargo ni un release precompilado disponible."
+    fi
 fi
 
 # 4. Crear alias/comandos globales con variaciones de mayúsculas/minúsculas

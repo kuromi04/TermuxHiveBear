@@ -572,7 +572,18 @@ show_menu() {
                         MODEL_ID="${RAW_MODEL}"
                         if [ "$MODEL_ID" = "Desconocido" ] || [ -z "$MODEL_ID" ]; then MODEL_ID="remote_model"; fi
                         
-                        RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR"
+                        if ! hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
+                            echo -e "\e[1;33m⚠️ Tu binario de hivebear instalado es antiguo y no soporta '--peer'.\e[0m"
+                            echo -e "\e[1;36m🔄 Actualizando binario de hivebear...\e[0m"
+                            bash "$(dirname "$(realpath "$0")")/install.sh"
+                        fi
+
+                        if hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
+                            RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR"
+                        else
+                            echo -e "\e[1;33m⚠️ Ejecutando conexión vía coordinador P2P...\e[0m"
+                            RUST_LOG=error hivebear mesh run "$MODEL_ID"
+                        fi
                        ;;
                     4) hivebear share ;;
                     *) echo "Opción inválida" ;;
@@ -673,7 +684,18 @@ show_menu() {
                         MODEL_ID="${RAW_MODEL}"
                         if [ "$MODEL_ID" = "Unknown" ] || [ -z "$MODEL_ID" ]; then MODEL_ID="remote_model"; fi
                         
-                        RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR"
+                        if ! hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
+                            echo -e "\e[1;33m⚠️ Your installed hivebear binary is outdated and lacks '--peer' support.\e[0m"
+                            echo -e "\e[1;36m🔄 Updating hivebear binary...\e[0m"
+                            bash "$(dirname "$(realpath "$0")")/install.sh"
+                        fi
+
+                        if hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
+                            RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR"
+                        else
+                            echo -e "\e[1;33m⚠️ Running connection via P2P coordinator...\e[0m"
+                            RUST_LOG=error hivebear mesh run "$MODEL_ID"
+                        fi
                        ;;
                     4) hivebear share ;;
                     *) echo "Invalid option" ;;
