@@ -514,7 +514,18 @@ show_menu() {
                         mapfile -t REMOTE_MODELS < <(echo "$PEERS_JSON" | jq -r '.[] | "\(.serving_model_id // "Desconocido")|\(.external_addr // .addr)|\(.addr // "")"' 2>/dev/null)
                         
                         if [ ${#REMOTE_MODELS[@]} -eq 0 ]; then
-                            echo "⚠️ No se encontraron nodos activos en el coordinador."
+                            echo "⚠️ No se encontraron nodos en el coordinador en la nube."
+                            read -p "Ingresa la IP Local de tu PC (ej. 192.168.0.4:7878) o Enter para auto-detectar en WiFi: " CUSTOM_IP
+                            if [ -n "$CUSTOM_IP" ]; then
+                                if [[ "$CUSTOM_IP" == *":"* ]]; then
+                                    TARGET_ADDR="$CUSTOM_IP"
+                                else
+                                    TARGET_ADDR="$CUSTOM_IP:7878"
+                                fi
+                                RUST_LOG=error hivebear mesh run "remote_model" --peer "$TARGET_ADDR"
+                            else
+                                RUST_LOG=error hivebear mesh run "remote_model"
+                            fi
                             read -p "Presiona Enter para continuar..."
                             show_menu; return
                         fi
@@ -523,6 +534,9 @@ show_menu() {
                         for i in "${!REMOTE_MODELS[@]}"; do
                             RAW_MODEL=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f1)
                             MODEL_BASENAME=$(basename "$RAW_MODEL")
+                            if [ "$MODEL_BASENAME" = "Desconocido" ] || [ "$MODEL_BASENAME" = "null" ] || [ -z "$MODEL_BASENAME" ]; then
+                                MODEL_BASENAME="Auto-detectar modelo de PC"
+                            fi
                             EXT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f2)
                             INT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f3)
                             echo "  $((i+1))) Nodo: $EXT_ADDR | Local: ${INT_ADDR:-N/A} | Modelo: $MODEL_BASENAME"
@@ -544,11 +558,15 @@ show_menu() {
                             INT_PORT=$(echo "$RAW_INT_ADDR" | cut -d':' -f2)
                             INT_PORT=${INT_PORT:-${PORT_ONLY:-7878}}
                             
+                            DEFAULT_TARGET="$IP_ONLY:${PORT_ONLY:-7878}"
+                            if [ -n "$RAW_INT_ADDR" ] && [[ "$RAW_INT_ADDR" != 0.0.0.0* ]] && [[ "$RAW_INT_ADDR" != 127.* ]]; then
+                                DEFAULT_TARGET="$RAW_INT_ADDR"
+                            fi
+                            
                             echo ""
-                            echo -e "\e[1;33m🌐 La IP pública registrada del nodo es $IP_ONLY (Puerto público: ${PORT_ONLY:-7878})\e[0m"
-                            echo -e "\e[1;36m🏠 La dirección local interna es ${RAW_INT_ADDR:-"Desconocida"}\e[0m"
-                            echo "Si estás en el MISMO WiFi que la PC, usa la IP Local de tu PC (ej. 192.168.0.4 o 192.168.0.4:7878)."
-                            read -p "Ingresa la IP Local [Enter para usar la registrada]: " CUSTOM_IP
+                            echo -e "\e[1;33m🌐 IP pública registrada: $IP_ONLY (Puerto: ${PORT_ONLY:-7878})\e[0m"
+                            echo -e "\e[1;36m🏠 Dirección local WiFi:  ${RAW_INT_ADDR:-"Desconocida"}\e[0m"
+                            read -p "Ingresa la IP [Enter para usar $DEFAULT_TARGET]: " CUSTOM_IP
                             
                             if [ -n "$CUSTOM_IP" ]; then
                                 if [[ "$CUSTOM_IP" == *":"* ]]; then
@@ -557,7 +575,7 @@ show_menu() {
                                     TARGET_ADDR="$CUSTOM_IP:$INT_PORT"
                                 fi
                             else
-                                TARGET_ADDR="$IP_ONLY:${PORT_ONLY:-7878}"
+                                TARGET_ADDR="$DEFAULT_TARGET"
                             fi
                         else
                             echo "❌ Opción inválida."
@@ -633,7 +651,18 @@ show_menu() {
                         mapfile -t REMOTE_MODELS < <(echo "$PEERS_JSON" | jq -r '.[] | "\(.serving_model_id // "Unknown")|\(.external_addr // .addr)|\(.addr // "")"' 2>/dev/null)
                         
                         if [ ${#REMOTE_MODELS[@]} -eq 0 ]; then
-                            echo "⚠️ No active nodes found on the coordinator."
+                            echo "⚠️ No active nodes found on the cloud coordinator."
+                            read -p "Enter your PC's Local IP (e.g. 192.168.0.4:7878) or press Enter to auto-discover on WiFi: " CUSTOM_IP
+                            if [ -n "$CUSTOM_IP" ]; then
+                                if [[ "$CUSTOM_IP" == *":"* ]]; then
+                                    TARGET_ADDR="$CUSTOM_IP"
+                                else
+                                    TARGET_ADDR="$CUSTOM_IP:7878"
+                                fi
+                                RUST_LOG=error hivebear mesh run "remote_model" --peer "$TARGET_ADDR"
+                            else
+                                RUST_LOG=error hivebear mesh run "remote_model"
+                            fi
                             read -p "Press Enter to continue..."
                             show_menu; return
                         fi
@@ -642,6 +671,9 @@ show_menu() {
                         for i in "${!REMOTE_MODELS[@]}"; do
                             RAW_MODEL=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f1)
                             MODEL_BASENAME=$(basename "$RAW_MODEL")
+                            if [ "$MODEL_BASENAME" = "Unknown" ] || [ "$MODEL_BASENAME" = "null" ] || [ -z "$MODEL_BASENAME" ]; then
+                                MODEL_BASENAME="Auto-detect PC model"
+                            fi
                             EXT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f2)
                             INT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f3)
                             echo "  $((i+1))) Node: $EXT_ADDR | Local: ${INT_ADDR:-N/A} | Model: $MODEL_BASENAME"
@@ -663,11 +695,15 @@ show_menu() {
                             INT_PORT=$(echo "$RAW_INT_ADDR" | cut -d':' -f2)
                             INT_PORT=${INT_PORT:-${PORT_ONLY:-7878}}
                             
+                            DEFAULT_TARGET="$IP_ONLY:${PORT_ONLY:-7878}"
+                            if [ -n "$RAW_INT_ADDR" ] && [[ "$RAW_INT_ADDR" != 0.0.0.0* ]] && [[ "$RAW_INT_ADDR" != 127.* ]]; then
+                                DEFAULT_TARGET="$RAW_INT_ADDR"
+                            fi
+                            
                             echo ""
-                            echo -e "\e[1;33m🌐 The node's registered public IP is $IP_ONLY (Public port: ${PORT_ONLY:-7878})\e[0m"
-                            echo -e "\e[1;36m🏠 The internal local address is ${RAW_INT_ADDR:-"Unknown"}\e[0m"
-                            echo "If you are on the SAME WiFi as your PC, use your PC's Local IP (e.g. 192.168.0.4 or 192.168.0.4:7878)."
-                            read -p "Enter Local IP [Press Enter to use registered IP]: " CUSTOM_IP
+                            echo -e "\e[1;33m🌐 Registered public IP: $IP_ONLY (Port: ${PORT_ONLY:-7878})\e[0m"
+                            echo -e "\e[1;36m🏠 Local WiFi address:   ${RAW_INT_ADDR:-"Unknown"}\e[0m"
+                            read -p "Enter IP [Press Enter to use $DEFAULT_TARGET]: " CUSTOM_IP
                             
                             if [ -n "$CUSTOM_IP" ]; then
                                 if [[ "$CUSTOM_IP" == *":"* ]]; then
@@ -676,7 +712,7 @@ show_menu() {
                                     TARGET_ADDR="$CUSTOM_IP:$INT_PORT"
                                 fi
                             else
-                                TARGET_ADDR="$IP_ONLY:${PORT_ONLY:-7878}"
+                                TARGET_ADDR="$DEFAULT_TARGET"
                             fi
                         else
                             echo "❌ Invalid option."
