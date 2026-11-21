@@ -78,7 +78,7 @@ When you run `termuxhivebear`, you will see a main menu. Here is what each optio
 9. **🔍 Search and Download Models:** Lets you search for any model directly from HuggingFace and download it automatically.
 10. **🗑️ Manage Local Models:** Lists all downloaded models and allows you to easily delete the ones you no longer use to free up space.
 11. **🔄 Update TermuxHiveBear:** Automatically pulls the latest code from GitHub and updates your installation.
-12. **🕸️ P2P Mesh Network:** Opens the Mesh sub-menu to Contribute (earn Karma) or Run distributed models.
+12. **🕸️ P2P Mesh Network:** Opens the Mesh sub-menu: connect directly to your PC via WiFi LAN IP (`192.168.0.4:7878`), auto-discover peers via UDP, or contribute mobile compute.
 
 ### 🛠️ Manual Execution Commands
 If you prefer bypassing the interactive menu, you can use the raw binaries:
@@ -132,7 +132,7 @@ Al ejecutar `termuxhivebear`, verás un menú principal interactivo. Esto es lo 
 9. **🔍 Buscar y Descargar Modelos:** Te permite buscar cualquier modelo directamente en HuggingFace y descargarlo con un solo clic.
 10. **🗑️ Gestionar Modelos Locales:** Te muestra una lista de los modelos que tienes guardados y te permite borrar los que ya no uses para recuperar espacio.
 11. **🔄 Actualizar TermuxHiveBear:** Se conecta a GitHub y descarga la última versión del código para mantener tu instalación siempre al día.
-12. **🕸️ Red Mesh P2P:** Abre el submenú de la red compartida para Contribuir (ganar Karma) o usar la potencia distribuida para modelos pesados.
+12. **🕸️ Red Mesh P2P:** Abre el submenú de la red Mesh: chatear directamente con tu PC por WiFi local (`192.168.0.4:7878`), auto-descubrir nodos por UDP o prestar CPU del móvil.
 
 ### 🛠️ Comandos de Ejecución Manual
 Si prefieres saltarte el menú interactivo, puedes usar los comandos directos:
