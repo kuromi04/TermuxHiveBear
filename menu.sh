@@ -466,281 +466,97 @@ show_menu() {
             show_menu
             ;;
         12)
-            # Ensure config points to the right coordinator so mesh status/run connect to the correct node
             CONFIG_FILE="$HOME/.config/hivebear/config.toml"
             if [ ! -f "$CONFIG_FILE" ]; then
                 hivebear config reset >/dev/null 2>&1 || true
             fi
-            if [ -f "$CONFIG_FILE" ]; then
-                sed -i 's|coordination_server = ".*"|coordination_server = "http://34.66.188.245"|' "$CONFIG_FILE"
-            fi
 
             if [ "$LANG_MODE" = "ES" ]; then
                 echo "🕸️ Opciones de Red Mesh P2P:"
-                echo " 1. Prestar CPU a la red (contribute)"
-                echo " 2. Ver estado de la red (status)"
-                echo " 3. Ejecutar chat usando la red (mesh run)"
-                echo " 4. Compartir modelo vía web (share)"
+                echo " 1. Chatear con tu PC vía WiFi LAN (Directo IP: 192.168.0.4:7878)"
+                echo " 2. Chatear con auto-detección P2P en WiFi (UDP 7877)"
+                echo " 3. Prestar CPU a la red (contribute)"
+                echo " 4. Ver estado de la red (status)"
+                echo " 5. Compartir modelo vía web (share)"
                 echo " 0. Volver al menú principal"
                 read -p " Elige una opción: " sub_choice
                 case $sub_choice in
                     0) show_menu; return ;;
                     1)
+                        read -p " Ingresa la IP de tu PC [Enter para 192.168.0.4:7878]: " CUSTOM_IP
+                        if [ -z "$CUSTOM_IP" ]; then
+                            TARGET_ADDR="192.168.0.4:7878"
+                        elif [[ "$CUSTOM_IP" == *":"* ]]; then
+                            TARGET_ADDR="$CUSTOM_IP"
+                        else
+                            TARGET_ADDR="$CUSTOM_IP:7878"
+                        fi
+                        echo -e "\e[1;36m🔗 Conectando a $TARGET_ADDR vía QUIC...\e[0m"
+                        RUST_LOG=error hivebear mesh run "remote_model" --peer "$TARGET_ADDR"
+                        read -p "Presiona Enter para continuar..."
+                        ;;
+                    2)
+                        echo -e "\e[1;36m🔍 Buscando nodos en tu WiFi local (UDP 7877)...\e[0m"
+                        RUST_LOG=error hivebear mesh run "remote_model"
+                        read -p "Presiona Enter para continuar..."
+                        ;;
+                    3)
                         FIRST_MOD=$(ls -1 $HOME/.cache/hivebear/models/ 2>/dev/null | grep gguf | head -n1)
                         if [ -n "$FIRST_MOD" ]; then
-                            hivebear contribute --coordinator http://34.66.188.245 --port 7882 --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
+                            hivebear contribute --port 7882 --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
                         else
-                            hivebear contribute --coordinator http://34.66.188.245 --port 7882
+                            hivebear contribute --port 7882
                         fi
                         ;;
-                    2) 
+                    4) 
                         hivebear mesh status
-                        echo ""
-                        echo -e "\e[1;36mNodos activos en el Coordinador (http://34.66.188.245):\e[0m"
-                        if command -v jq &> /dev/null; then
-                            curl -s http://34.66.188.245/peers | jq -r '.[] | "- IP: \(.external_addr // .addr) | Modelo: \(.serving_model_id // "No especificado")"' || echo "No se encontraron nodos remotos."
-                        else
-                            curl -s http://34.66.188.245/peers | grep -oE '"external_addr":"[^"]*"|"serving_model_id":[^,}]*' || echo "No se encontraron nodos remotos."
-                        fi
-                        echo ""
                         read -p "Presiona Enter..." 
                         ;;
-                     3)
-                        echo "🔍 Buscando nodos y modelos en la red..."
-                        if ! command -v jq &> /dev/null || ! command -v curl &> /dev/null; then pkg install jq curl -y > /dev/null 2>&1; fi
-                        PEERS_JSON=$(curl -s http://34.66.188.245/peers)
-                        
-                        # Extraer todos los nodos: model_id, external_addr, addr (interna)
-                        mapfile -t REMOTE_MODELS < <(echo "$PEERS_JSON" | jq -r '.[] | "\(.serving_model_id // "Desconocido")|\(.external_addr // .addr)|\(.addr // "")"' 2>/dev/null)
-                        
-                        if [ ${#REMOTE_MODELS[@]} -eq 0 ]; then
-                            echo "⚠️ No se encontraron nodos en el coordinador en la nube."
-                            read -p "Ingresa la IP Local de tu PC (ej. 192.168.0.4:7878) o Enter para auto-detectar en WiFi: " CUSTOM_IP
-                            if [ -n "$CUSTOM_IP" ]; then
-                                if [[ "$CUSTOM_IP" == *":"* ]]; then
-                                    TARGET_ADDR="$CUSTOM_IP"
-                                else
-                                    TARGET_ADDR="$CUSTOM_IP:7878"
-                                fi
-                                RUST_LOG=error hivebear mesh run "remote_model" --peer "$TARGET_ADDR"
-                            else
-                                RUST_LOG=error hivebear mesh run "remote_model"
-                            fi
-                            read -p "Presiona Enter para continuar..."
-                            show_menu; return
-                        fi
-                        
-                        echo "📦 Nodos disponibles en la red P2P:"
-                        for i in "${!REMOTE_MODELS[@]}"; do
-                            RAW_MODEL=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f1)
-                            MODEL_BASENAME=$(basename "$RAW_MODEL")
-                            if [ "$MODEL_BASENAME" = "Desconocido" ] || [ "$MODEL_BASENAME" = "null" ] || [ -z "$MODEL_BASENAME" ]; then
-                                MODEL_BASENAME="Auto-detectar modelo de PC"
-                            fi
-                            EXT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f2)
-                            INT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f3)
-                            echo "  $((i+1))) Nodo: $EXT_ADDR | Local: ${INT_ADDR:-N/A} | Modelo: $MODEL_BASENAME"
-                        done
-                        echo "  0) Volver al menú principal"
-                        read -p " Selecciona un nodo al cual conectarte [0-${#REMOTE_MODELS[@]}]: " RUN_INDEX
-                        
-                        if [ "$RUN_INDEX" = "0" ]; then show_menu; return; fi
-                        
-                        if [[ "$RUN_INDEX" =~ ^[0-9]+$ ]] && [ "$RUN_INDEX" -ge 1 ] && [ "$RUN_INDEX" -le "${#REMOTE_MODELS[@]}" ]; then
-                            SELECTED="${REMOTE_MODELS[$((RUN_INDEX-1))]}"
-                            RAW_MODEL=$(echo "$SELECTED" | cut -d'|' -f1)
-                            RAW_EXT_ADDR=$(echo "$SELECTED" | cut -d'|' -f2)
-                            RAW_INT_ADDR=$(echo "$SELECTED" | cut -d'|' -f3)
-                            
-                            IP_ONLY=$(echo "$RAW_EXT_ADDR" | cut -d':' -f1)
-                            PORT_ONLY=$(echo "$RAW_EXT_ADDR" | cut -d':' -f2)
-                            
-                            INT_PORT=$(echo "$RAW_INT_ADDR" | cut -d':' -f2)
-                            INT_PORT=${INT_PORT:-${PORT_ONLY:-7878}}
-                            
-                            DEFAULT_TARGET="$IP_ONLY:${PORT_ONLY:-7878}"
-                            if [ -n "$RAW_INT_ADDR" ] && [[ "$RAW_INT_ADDR" != 0.0.0.0* ]] && [[ "$RAW_INT_ADDR" != 127.* ]]; then
-                                DEFAULT_TARGET="$RAW_INT_ADDR"
-                            fi
-                            
-                            echo ""
-                            echo -e "\e[1;33m🌐 IP pública registrada: $IP_ONLY (Puerto: ${PORT_ONLY:-7878})\e[0m"
-                            echo -e "\e[1;36m🏠 Dirección local WiFi:  ${RAW_INT_ADDR:-"Desconocida"}\e[0m"
-                            read -p "Ingresa la IP [Enter para usar $DEFAULT_TARGET]: " CUSTOM_IP
-                            
-                            if [ -n "$CUSTOM_IP" ]; then
-                                if [[ "$CUSTOM_IP" == *":"* ]]; then
-                                    TARGET_ADDR="$CUSTOM_IP"
-                                else
-                                    TARGET_ADDR="$CUSTOM_IP:$INT_PORT"
-                                fi
-                            else
-                                TARGET_ADDR="$DEFAULT_TARGET"
-                            fi
-                        else
-                            echo "❌ Opción inválida."
-                            read -p "Presiona Enter..."
-                            show_menu; return
-                        fi
-                        
-                        killall -9 hivebear 2>/dev/null || true
-                        
-                        echo -e "\e[1;36m🔗 Conectando al nodo remoto en $TARGET_ADDR...\e[0m"
-                        
-                        MODEL_ID="${RAW_MODEL}"
-                        if [ "$MODEL_ID" = "Desconocido" ] || [ -z "$MODEL_ID" ]; then
-                            LOCAL_EXISTING=$(ls -1 $HOME/.cache/hivebear/models/*.gguf 2>/dev/null | head -n1)
-                            if [ -n "$LOCAL_EXISTING" ] && [ -f "$LOCAL_EXISTING" ]; then
-                                MODEL_ID="$LOCAL_EXISTING"
-                            else
-                                MODEL_ID="remote_model"
-                            fi
-                        fi
-                        
-                        if ! hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
-                            echo -e "\e[1;33m⚠️ Tu binario de hivebear instalado no soporta '--peer'.\e[0m"
-                            echo -e "\e[1;36m🔄 Intentando actualizar binario de hivebear...\e[0m"
-                            bash "$(dirname "$(realpath "$0")")/install.sh"
-                        fi
-
-                        if hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
-                            RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR"
-                        else
-                            echo -e "\e[1;33m⚠️ Conectando directamente por red Mesh al peer $TARGET_ADDR...\e[0m"
-                            RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR" 2>/dev/null || RUST_LOG=error hivebear mesh run "$MODEL_ID"
-                        fi
-                       ;;
-                    4) hivebear share ;;
+                    5) hivebear share ;;
                     *) echo "Opción inválida" ;;
                 esac
             else
                 echo "🕸️ P2P Mesh Network Options:"
-                echo " 1. Share CPU with network (contribute)"
-                echo " 2. View network status (status)"
-                echo " 3. Run chat over network (mesh run)"
-                echo " 4. Share model via web link (share)"
+                echo " 1. Chat with your PC via WiFi LAN (Direct IP: 192.168.0.4:7878)"
+                echo " 2. Chat using P2P auto-discovery on WiFi (UDP 7877)"
+                echo " 3. Share CPU with network (contribute)"
+                echo " 4. View network status (status)"
+                echo " 5. Share model via web link (share)"
                 echo " 0. Back to main menu"
                 read -p " Choose an option: " sub_choice
                 case $sub_choice in
                     0) show_menu; return ;;
                     1)
+                        read -p " Enter your PC IP [Enter for 192.168.0.4:7878]: " CUSTOM_IP
+                        if [ -z "$CUSTOM_IP" ]; then
+                            TARGET_ADDR="192.168.0.4:7878"
+                        elif [[ "$CUSTOM_IP" == *":"* ]]; then
+                            TARGET_ADDR="$CUSTOM_IP"
+                        else
+                            TARGET_ADDR="$CUSTOM_IP:7878"
+                        fi
+                        echo -e "\e[1;36m🔗 Connecting to $TARGET_ADDR via QUIC...\e[0m"
+                        RUST_LOG=error hivebear mesh run "remote_model" --peer "$TARGET_ADDR"
+                        read -p "Press Enter to continue..."
+                        ;;
+                    2)
+                        echo -e "\e[1;36m🔍 Discovering nodes on local WiFi (UDP 7877)...\e[0m"
+                        RUST_LOG=error hivebear mesh run "remote_model"
+                        read -p "Press Enter to continue..."
+                        ;;
+                    3)
                         FIRST_MOD=$(ls -1 $HOME/.cache/hivebear/models/ 2>/dev/null | grep gguf | head -n1)
                         if [ -n "$FIRST_MOD" ]; then
-                            hivebear contribute --coordinator http://34.66.188.245 --port 7882 --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
+                            hivebear contribute --port 7882 --model "$HOME/.cache/hivebear/models/$FIRST_MOD"
                         else
-                            hivebear contribute --coordinator http://34.66.188.245 --port 7882
+                            hivebear contribute --port 7882
                         fi
                         ;;
-                    2) 
+                    4) 
                         hivebear mesh status
-                        echo ""
-                        echo -e "\e[1;36mActive nodes in Coordinator (http://34.66.188.245):\e[0m"
-                        if command -v jq &> /dev/null; then
-                            curl -s http://34.66.188.245/peers | jq -r '.[] | "- IP: \(.external_addr // .addr) | Model: \(.serving_model_id // "Not specified")"' || echo "No remote nodes found."
-                        else
-                            curl -s http://34.66.188.245/peers | grep -oE '"external_addr":"[^"]*"|"serving_model_id":[^,}]*' || echo "No remote nodes found."
-                        fi
-                        echo ""
                         read -p "Press Enter..." 
                         ;;
-                     3)
-                        echo "🔍 Searching for nodes and models on the network..."
-                        if ! command -v jq &> /dev/null || ! command -v curl &> /dev/null; then pkg install jq curl -y > /dev/null 2>&1; fi
-                        PEERS_JSON=$(curl -s http://34.66.188.245/peers)
-                        
-                        mapfile -t REMOTE_MODELS < <(echo "$PEERS_JSON" | jq -r '.[] | "\(.serving_model_id // "Unknown")|\(.external_addr // .addr)|\(.addr // "")"' 2>/dev/null)
-                        
-                        if [ ${#REMOTE_MODELS[@]} -eq 0 ]; then
-                            echo "⚠️ No active nodes found on the cloud coordinator."
-                            read -p "Enter your PC's Local IP (e.g. 192.168.0.4:7878) or press Enter to auto-discover on WiFi: " CUSTOM_IP
-                            if [ -n "$CUSTOM_IP" ]; then
-                                if [[ "$CUSTOM_IP" == *":"* ]]; then
-                                    TARGET_ADDR="$CUSTOM_IP"
-                                else
-                                    TARGET_ADDR="$CUSTOM_IP:7878"
-                                fi
-                                RUST_LOG=error hivebear mesh run "remote_model" --peer "$TARGET_ADDR"
-                            else
-                                RUST_LOG=error hivebear mesh run "remote_model"
-                            fi
-                            read -p "Press Enter to continue..."
-                            show_menu; return
-                        fi
-                        
-                        echo "📦 Nodes available on the P2P network:"
-                        for i in "${!REMOTE_MODELS[@]}"; do
-                            RAW_MODEL=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f1)
-                            MODEL_BASENAME=$(basename "$RAW_MODEL")
-                            if [ "$MODEL_BASENAME" = "Unknown" ] || [ "$MODEL_BASENAME" = "null" ] || [ -z "$MODEL_BASENAME" ]; then
-                                MODEL_BASENAME="Auto-detect PC model"
-                            fi
-                            EXT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f2)
-                            INT_ADDR=$(echo "${REMOTE_MODELS[$i]}" | cut -d'|' -f3)
-                            echo "  $((i+1))) Node: $EXT_ADDR | Local: ${INT_ADDR:-N/A} | Model: $MODEL_BASENAME"
-                        done
-                        echo "  0) Back to main menu"
-                        read -p " Select a node to connect to [0-${#REMOTE_MODELS[@]}]: " RUN_INDEX
-                        
-                        if [ "$RUN_INDEX" = "0" ]; then show_menu; return; fi
-                        
-                        if [[ "$RUN_INDEX" =~ ^[0-9]+$ ]] && [ "$RUN_INDEX" -ge 1 ] && [ "$RUN_INDEX" -le "${#REMOTE_MODELS[@]}" ]; then
-                            SELECTED="${REMOTE_MODELS[$((RUN_INDEX-1))]}"
-                            RAW_MODEL=$(echo "$SELECTED" | cut -d'|' -f1)
-                            RAW_EXT_ADDR=$(echo "$SELECTED" | cut -d'|' -f2)
-                            RAW_INT_ADDR=$(echo "$SELECTED" | cut -d'|' -f3)
-                            
-                            IP_ONLY=$(echo "$RAW_EXT_ADDR" | cut -d':' -f1)
-                            PORT_ONLY=$(echo "$RAW_EXT_ADDR" | cut -d':' -f2)
-                            
-                            INT_PORT=$(echo "$RAW_INT_ADDR" | cut -d':' -f2)
-                            INT_PORT=${INT_PORT:-${PORT_ONLY:-7878}}
-                            
-                            DEFAULT_TARGET="$IP_ONLY:${PORT_ONLY:-7878}"
-                            if [ -n "$RAW_INT_ADDR" ] && [[ "$RAW_INT_ADDR" != 0.0.0.0* ]] && [[ "$RAW_INT_ADDR" != 127.* ]]; then
-                                DEFAULT_TARGET="$RAW_INT_ADDR"
-                            fi
-                            
-                            echo ""
-                            echo -e "\e[1;33m🌐 Registered public IP: $IP_ONLY (Port: ${PORT_ONLY:-7878})\e[0m"
-                            echo -e "\e[1;36m🏠 Local WiFi address:   ${RAW_INT_ADDR:-"Unknown"}\e[0m"
-                            read -p "Enter IP [Press Enter to use $DEFAULT_TARGET]: " CUSTOM_IP
-                            
-                            if [ -n "$CUSTOM_IP" ]; then
-                                if [[ "$CUSTOM_IP" == *":"* ]]; then
-                                    TARGET_ADDR="$CUSTOM_IP"
-                                else
-                                    TARGET_ADDR="$CUSTOM_IP:$INT_PORT"
-                                fi
-                            else
-                                TARGET_ADDR="$DEFAULT_TARGET"
-                            fi
-                        else
-                            echo "❌ Invalid option."
-                            read -p "Press Enter..."
-                            show_menu; return
-                        fi
-                        
-                        killall -9 hivebear 2>/dev/null || true
-                        
-                        echo -e "\e[1;36m🔗 Connecting to remote node at $TARGET_ADDR...\e[0m"
-                        
-                        MODEL_ID="${RAW_MODEL}"
-                        if [ "$MODEL_ID" = "Unknown" ] || [ -z "$MODEL_ID" ]; then MODEL_ID="remote_model"; fi
-                        
-                        if ! hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
-                            echo -e "\e[1;33m⚠️ Your installed hivebear binary is outdated and lacks '--peer' support.\e[0m"
-                            echo -e "\e[1;36m🔄 Updating hivebear binary...\e[0m"
-                            bash "$(dirname "$(realpath "$0")")/install.sh"
-                        fi
-
-                        if hivebear mesh run --help 2>&1 | grep -q -- '--peer'; then
-                            RUST_LOG=error hivebear mesh run "$MODEL_ID" --peer "$TARGET_ADDR"
-                        else
-                            echo -e "\e[1;33m⚠️ Running connection via P2P coordinator...\e[0m"
-                            RUST_LOG=error hivebear mesh run "$MODEL_ID"
-                        fi
-                       ;;
-                    4) hivebear share ;;
+                    5) hivebear share ;;
                     *) echo "Invalid option" ;;
                 esac
             fi
