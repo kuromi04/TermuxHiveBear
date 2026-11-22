@@ -31,6 +31,14 @@ termuxhivebear
 
 ---
 
+## 🆕 What's New (`v0.2.37` — P2P Mesh, Karma Ed25519 & Cybersecurity Hardening)
+
+- ⚖️ **3-Phase Cryptographic Karma Economy:** Automatic Ed25519 signed `WorkReceipt` submission when chatting with remote PC peers (`10 tokens = 1 Karma`, `VIP_ALPHA >= 2,000`), persistent ledger on the live coordinator (`http://34.63.209.220`), and **0 Karma cost on local WiFi LAN**.
+- ⚡ **QUIC TLS 1.3 Keepalive (`5s`) & 300s Heavy-Model Support:** Prevents idle connection drops when your PC loads large 7B–9B GGUF models into RAM/CPU, plus Ed25519 `NodeId` certificate binding (`hivebear-id-<hex>`).
+- 🔄 **Automatic Coordinator Migration:** `install.sh` and `menu.sh` automatically migrate legacy configs to `http://34.63.209.220` and fetch the latest prebuilt `hivebear-aarch64-linux-android.tar.gz`.
+
+---
+
 ## 🌐 Languages / Idiomas
 
 - [English Documentation](#-english-documentation)
