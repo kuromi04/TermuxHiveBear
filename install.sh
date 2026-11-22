@@ -70,6 +70,14 @@ if [ "$INSTALLED" -eq 0 ]; then
     fi
 fi
 
+# 3.6 Migrar IP del servidor coordinador si existe config.toml antiguo
+for cfg in "$HOME/.config/hivebear/config.toml" "$HOME/.hivebear/config.toml"; do
+    if [ -f "$cfg" ] && grep -q "34.66.188.245" "$cfg"; then
+        sed -i 's/34\.66\.188\.245/34.63.209.220/g' "$cfg" 2>/dev/null || true
+        echo "🔄 Actualizada IP del coordinador en $cfg -> 34.63.209.220"
+    fi
+done
+
 # 4. Crear alias/comandos globales con variaciones de mayúsculas/minúsculas
 echo "🔗 Configurando ejecutables globales (termuxhivebear / termuxhiveBear / TermuxHiveBear)..."
 BIN_DIR="$HOME/.local/bin"

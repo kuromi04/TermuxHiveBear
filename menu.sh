@@ -469,6 +469,8 @@ show_menu() {
             CONFIG_FILE="$HOME/.config/hivebear/config.toml"
             if [ ! -f "$CONFIG_FILE" ]; then
                 hivebear config reset >/dev/null 2>&1 || true
+            elif grep -q "34.66.188.245" "$CONFIG_FILE" 2>/dev/null; then
+                sed -i 's/34\.66\.188\.245/34.63.209.220/g' "$CONFIG_FILE" 2>/dev/null || true
             fi
 
             if [ "$LANG_MODE" = "ES" ]; then
